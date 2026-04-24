@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Report Action -->
+    <record id="action_report_borrowing_history" model="ir.actions.act_window">
+        <field name="name">Borrowing History Report</field>
+        <field name="res_model">library.borrowing</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{
+            'pivot_measures': ['days_borrowed'],
+            'pivot_row_groupby': ['book_id'],
+            'pivot_column_groupby': ['state'],
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Borrowing history report
+            </p>
+            <p>
+                View borrowing history and analyze borrowing patterns.
+            </p>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="view_library_borrowing_pivot" model="ir.ui.view">
+        <field name="name">library.borrowing.pivot</field>
+        <field name="model">library.borrowing</field>
+        <field name="arch" type="xml">
+            <pivot string="Borrowing History Analysis">
+                <field name="book_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="days_borrowed" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="view_library_borrowing_graph" model="ir.ui.view">
+        <field name="name">library.borrowing.graph</field>
+        <field name="model">library.borrowing</field>
+        <field name="arch" type="xml">
+            <graph string="Borrowing History Analysis" type="line">
+                <field name="borrow_date" interval="month"/>
+                <field name="days_borrowed" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- QWeb Report Template -->
+    <record id="paperformat_borrowing_history" model="report.paperformat">
+        <field name="name">Borrowing History Paper Format</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">23</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">35</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_borrowing_history_pdf" model="ir.actions.report">
+        <field name="name">Borrowing History Report (PDF)</field>
+        <field name="model">library.borrowing</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">library_management.report_borrowing_history_document</field>
+        <field name="report_file">library_management.report_borrowing_history_document</field>
+        <field name="binding_model_id" ref="model_library_borrowing"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_borrowing_history"/>
+    </record>
+
+    <template id="report_borrowing_history_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Borrowing History Report</h2>
+                        <p>Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M:%S')"/></p>
+
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Book</th>
+                                    <th>Author</th>
+                                    <th>Borrower</th>
+                                    <th>Borrow Date</th>
+                                    <th>Expected Return</th>
+                                    <th>Return Date</th>
+                                    <th>Days Borrowed</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="docs" t-as="borrowing">
+                                    <tr t-att-class="'table-danger' if borrowing.is_overdue and borrowing.state == 'borrowed' else ''">
+                                        <td><span t-field="borrowing.name"/></td>
+                                        <td><span t-field="borrowing.book_id"/></td>
+                                        <td><span t-field="borrowing.book_author"/></td>
+                                        <td><span t-field="borrowing.borrower_name"/></td>
+                                        <td><span t-field="borrowing.borrow_date"/></td>
+                                        <td><span t-field="borrowing.expected_return_date"/></td>
+                                        <td><span t-field="borrowing.return_date"/></td>
+                                        <td><span t-field="borrowing.days_borrowed"/></td>
+                                        <td>
+                                            <span t-if="borrowing.state == 'borrowed'" class="badge bg-info">Borrowed</span>
+                                            <span t-if="borrowing.state == 'returned'" class="badge bg-success">Returned</span>
+                                            <span t-if="borrowing.is_overdue and borrowing.state == 'borrowed'" class="badge bg-danger ms-1">OVERDUE</span>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <h4>Summary</h4>
+                                <p>Total Borrowings: <strong t-esc="len(docs)"/></p>
+                                <p>Currently Borrowed: <strong t-esc="len(docs.filtered(lambda b: b.state == 'borrowed'))"/></p>
+                                <p>Returned: <strong t-esc="len(docs.filtered(lambda b: b.state == 'returned'))"/></p>
+                                <p>Overdue: <strong t-esc="len(docs.filtered(lambda b: b.is_overdue and b.state == 'borrowed'))"/></p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

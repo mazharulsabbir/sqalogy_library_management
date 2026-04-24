@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem id="menu_library_root"
+              name="Library"
+              sequence="10"
+              web_icon="library_management,static/description/icon.png"/>
+
+    <!-- Main Menus -->
+    <menuitem id="menu_library_operations"
+              name="Operations"
+              parent="menu_library_root"
+              sequence="10"/>
+
+    <menuitem id="menu_library_reporting"
+              name="Reporting"
+              parent="menu_library_root"
+              sequence="20"/>
+
+    <menuitem id="menu_library_configuration"
+              name="Configuration"
+              parent="menu_library_root"
+              sequence="100"
+              groups="base.group_system"/>
+
+    <!-- Operations Submenus -->
+    <menuitem id="menu_library_book"
+              name="Books"
+              parent="menu_library_operations"
+              action="action_library_book"
+              sequence="10"/>
+
+    <menuitem id="menu_library_borrowing"
+              name="Borrowings"
+              parent="menu_library_operations"
+              action="action_library_borrowing"
+              sequence="20"/>
+
+    <!-- Reporting Submenus -->
+    <menuitem id="menu_library_report_inventory"
+              name="Book Inventory"
+              parent="menu_library_reporting"
+              action="action_report_book_inventory"
+              sequence="10"/>
+
+    <menuitem id="menu_library_report_borrowing_history"
+              name="Borrowing History"
+              parent="menu_library_reporting"
+              action="action_report_borrowing_history"
+              sequence="20"/>
+</odoo>

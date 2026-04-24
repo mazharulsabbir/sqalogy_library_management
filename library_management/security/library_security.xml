@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Security Categories -->
+    <record id="module_category_library" model="ir.module.category">
+        <field name="name">Library Management</field>
+        <field name="description">Manage library access rights</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record model="res.groups.privilege" id="res_groups_privilege_library">
+        <field name="name">Library Management</field>
+        <field name="sequence">2</field>
+        <field name="category_id" ref="module_category_library"/>
+    </record>
+
+    <!-- User Groups -->
+    <record id="group_library_member" model="res.groups">
+        <field name="name">Member</field>
+        <field name="privilege_id" ref="res_groups_privilege_library"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Library members can view books and their own borrowings</field>
+    </record>
+
+    <record id="group_library_librarian" model="res.groups">
+        <field name="name">Librarian</field>
+        <field name="privilege_id" ref="res_groups_privilege_library"/>
+        <field name="implied_ids" eval="[(4, ref('group_library_member'))]"/>
+        <field name="comment">Librarians can manage books and all borrowings</field>
+    </record>
+
+    <record id="group_library_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="privilege_id" ref="res_groups_privilege_library"/>
+        <field name="implied_ids" eval="[(4, ref('group_library_librarian'))]"/>
+        <field name="comment">Library managers have full access including configuration</field>
+    </record>
+
+    <!-- Record Rules -->
+    <!-- Members can only see their own borrowings -->
+    <record id="library_borrowing_member_rule" model="ir.rule">
+        <field name="name">Library Borrowing: Member Access</field>
+        <field name="model_id" ref="model_library_borrowing"/>
+        <field name="domain_force">[('borrower_name', '=', user.name)]</field>
+        <field name="groups" eval="[(4, ref('group_library_member'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Librarians and Managers can see all borrowings -->
+    <record id="library_borrowing_librarian_rule" model="ir.rule">
+        <field name="name">Library Borrowing: Librarian/Manager Access</field>
+        <field name="model_id" ref="model_library_borrowing"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_library_librarian')), (4, ref('group_library_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- All users can read books -->
+    <record id="library_book_all_rule" model="ir.rule">
+        <field name="name">Library Book: All Users Read Access</field>
+        <field name="model_id" ref="model_library_book"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups"
+               eval="[(4, ref('group_library_member')), (4, ref('group_library_librarian')), (4, ref('group_library_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Librarians and Managers can write books -->
+    <record id="library_book_librarian_rule" model="ir.rule">
+        <field name="name">Library Book: Librarian/Manager Write Access</field>
+        <field name="model_id" ref="model_library_book"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_library_librarian')), (4, ref('group_library_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>

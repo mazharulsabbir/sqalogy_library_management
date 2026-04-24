@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Report Action -->
+    <record id="action_report_book_inventory" model="ir.actions.act_window">
+        <field name="name">Book Inventory Report</field>
+        <field name="res_model">library.book</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{
+            'pivot_measures': ['borrowing_count'],
+            'pivot_row_groupby': ['state'],
+            'pivot_column_groupby': ['author'],
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Book inventory report
+            </p>
+            <p>
+                View current inventory of books and their availability status.
+            </p>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="view_library_book_pivot" model="ir.ui.view">
+        <field name="name">library.book.pivot</field>
+        <field name="model">library.book</field>
+        <field name="arch" type="xml">
+            <pivot string="Book Inventory Analysis">
+                <field name="state" type="row"/>
+                <field name="author" type="col"/>
+                <field name="borrowing_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="view_library_book_graph" model="ir.ui.view">
+        <field name="name">library.book.graph</field>
+        <field name="model">library.book</field>
+        <field name="arch" type="xml">
+            <graph string="Book Inventory Analysis" type="bar">
+                <field name="state"/>
+                <field name="borrowing_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- QWeb Report Template -->
+    <record id="paperformat_book_inventory" model="report.paperformat">
+        <field name="name">Book Inventory Paper Format</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">23</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">35</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_book_inventory_pdf" model="ir.actions.report">
+        <field name="name">Book Inventory Report (PDF)</field>
+        <field name="model">library.book</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">library_management.report_book_inventory_document</field>
+        <field name="report_file">library_management.report_book_inventory_document</field>
+        <field name="binding_model_id" ref="model_library_book"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_book_inventory"/>
+    </record>
+
+    <template id="report_book_inventory_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Book Inventory Report</h2>
+                        <p>Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M:%S')"/></p>
+
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>ISBN</th>
+                                    <th>Publication Date</th>
+                                    <th>Status</th>
+                                    <th>Times Borrowed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="docs" t-as="book">
+                                    <tr>
+                                        <td><span t-field="book.name"/></td>
+                                        <td><span t-field="book.author"/></td>
+                                        <td><span t-field="book.isbn"/></td>
+                                        <td><span t-field="book.publication_date"/></td>
+                                        <td>
+                                            <span t-if="book.state == 'available'" class="badge bg-success">Available</span>
+                                            <span t-if="book.state == 'borrowed'" class="badge bg-info">Borrowed</span>
+                                        </td>
+                                        <td><span t-field="book.borrowing_count"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <h4>Summary</h4>
+                                <p>Total Books: <strong t-esc="len(docs)"/></p>
+                                <p>Available: <strong t-esc="len(docs.filtered(lambda b: b.state == 'available'))"/></p>
+                                <p>Borrowed: <strong t-esc="len(docs.filtered(lambda b: b.state == 'borrowed'))"/></p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
