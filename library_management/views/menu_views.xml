@@ -36,6 +36,19 @@
               action="action_library_borrowing"
               sequence="20"/>
 
+    <menuitem id="menu_library_member"
+              name="Members"
+              parent="menu_library_operations"
+              action="action_library_member"
+              sequence="30"/>
+
+    <!-- Configuration Submenus -->
+    <menuitem id="menu_library_category"
+              name="Categories"
+              parent="menu_library_configuration"
+              action="action_library_category"
+              sequence="10"/>
+
     <!-- Reporting Submenus -->
     <menuitem id="menu_library_report_inventory"
               name="Book Inventory"

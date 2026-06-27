@@ -13,6 +13,8 @@ A comprehensive Odoo 19 module for managing library book inventory and borrowing
   - Status (Available/Borrowed)
   - Borrowing count (computed)
   - Current borrowing record (computed)
+  - Categories (Many2many tags via `library.category`)
+  - Borrowing history (One2many)
 
 - **Views:**
   - Kanban view for visual book browsing
@@ -39,13 +41,23 @@ A comprehensive Odoo 19 module for managing library book inventory and borrowing
   - Overdue detection and visual alerts
   - "Borrow Again" action for repeat borrowers
 
-### 3. Availability Management
+### 3. Members & Categories (Week 7: Inheritance & Relations)
+- **Member Model** (`library.member`) using **delegation inheritance**
+  (`_inherits = {'res.partner': 'partner_id'}`) — a member *is a* contact and
+  exposes `name`/`email`/`phone` straight from `res.partner`.
+- **res.partner extension** (`_inherit = 'res.partner'`) adds `is_library_member`
+  and a `member_ids` One2many — an example of **extension inheritance**.
+- **Category Model** (`library.category`) used as **Many2many** tags on books.
+- Borrowings can be linked to a member via the `member_id` Many2one, the inverse
+  of the member's `borrowing_ids` One2many.
+
+### 4. Availability Management
 - Automatic status updates when books are borrowed or returned
 - Real-time availability tracking
 - Validation to ensure data integrity
 - Manual override capability for librarians
 
-### 4. User Interface
+### 5. User Interface
 - Modern, intuitive Odoo interface
 - Color-coded status indicators
 - Smart buttons for quick navigation
@@ -53,7 +65,7 @@ A comprehensive Odoo 19 module for managing library book inventory and borrowing
 - Chatter integration for activity tracking
 - Advanced filtering and search capabilities
 
-### 5. Access Control
+### 6. Access Control
 Three-tier security model:
 
 #### Member
@@ -71,7 +83,7 @@ Three-tier security model:
 - Access to configuration settings
 - Full administrative control
 
-### 6. Reporting
+### 7. Reporting
 
 #### Book Inventory Report
 - Current inventory status
@@ -182,7 +194,10 @@ library_management/
 - **Database Models:**
   - `library.book`
   - `library.borrowing`
-- **Sequence:** `library.borrowing` (BRW prefix)
+  - `library.category`
+  - `library.member` (delegation inheritance of `res.partner`)
+  - `res.partner` (extension inheritance)
+- **Sequences:** `library.borrowing` (BRW prefix), `library.member` (MEM prefix)
 
 ## Data Validation
 
@@ -195,13 +210,11 @@ library_management/
 ## Future Enhancements
 
 Potential features for future versions:
-- Member management (with res.partner integration)
 - Fine calculation for overdue books
 - Reservation system for borrowed books
 - Email notifications for due dates
 - Barcode scanning integration
 - Multi-language support
-- Book categories and tags
 - Advanced analytics dashboard
 
 ## Support

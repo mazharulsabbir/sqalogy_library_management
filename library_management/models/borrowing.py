@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+# =============================================================================
+# WEEK 7 TOPICS demonstrated in this file:
+#   * Odoo Models           -> the library_borrowing table
+#   * Odoo Inheritance      -> MIXIN inheritance (mail.thread, activity.mixin)
+#   * ORM Basics            -> create/write/unlink overrides, recordset ops
+#   * Environment (env)      -> self.env['ir.sequence'] / self.env['library.book']
+#   * Domains               -> search([...]) availability checks
+#   * One2many/Many2many    -> book_id / member_id Many2one are the inverse
+#                              sides of book.borrowing_ids / member.borrowing_ids
+# =============================================================================
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 from datetime import date
@@ -38,6 +49,17 @@ class LibraryBorrowing(models.Model):
         ondelete='restrict',
         tracking=True,
         help='Book being borrowed'
+    )
+    # One2many/Many2many.
+    # This Many2one is the INVERSE side of library.member.borrowing_ids
+    # (One2many). Optional: borrowings can still be recorded for a walk-in
+    # borrower using just the borrower_* fields below.
+    member_id = fields.Many2one(
+        'library.member',
+        string='Member',
+        ondelete='set null',
+        tracking=True,
+        help='Registered library member borrowing the book (optional)'
     )
     book_author = fields.Char(
         related='book_id.author',
@@ -96,12 +118,18 @@ class LibraryBorrowing(models.Model):
         help='Additional notes about the borrowing'
     )
 
-    @api.model
-    def create(self, vals):
-        """Generate sequence number for borrowing reference"""
-        if vals.get('name', _('New')) == _('New'):
-            vals['name'] = self.env['ir.sequence'].next_by_code('library.borrowing') or _('New')
-        return super().create(vals)
+    @api.onchange('member_id')
+    def _onchange_member_id(self):
+        """Auto-fill borrower contact details from the selected member.
+
+        Environment + delegation inheritance in action.
+        Because library.member delegates to res.partner, member_id.name/email/
+        phone read straight through to the partner record.
+        """
+        if self.member_id:
+            self.borrower_name = self.member_id.name
+            self.borrower_email = self.member_id.email
+            self.borrower_phone = self.member_id.phone
 
     @api.depends('expected_return_date', 'return_date', 'state')
     def _compute_is_overdue(self):
@@ -161,16 +189,24 @@ class LibraryBorrowing(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Override create to update book status and borrowing count"""
+        """Generate the reference sequence and update book status on create.
+
+        ORM Basics + Environment.
+        This is the single, correct create override. @api.model_create_multi
+        receives a LIST of value dicts (batch create), so we loop to assign the
+        sequence per record via self.env['ir.sequence']. The book's
+        borrowing_count recomputes automatically thanks to @api.depends on the
+        One2many (no manual recompute needed).
+        """
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code(
+                    'library.borrowing'
+                ) or _('New')
         borrowings = super().create(vals_list)
-        books_to_update = self.env['library.book']
         for borrowing in borrowings:
             if borrowing.state == 'borrowed':
                 borrowing.book_id.state = 'borrowed'
-            books_to_update |= borrowing.book_id
-        # Trigger recomputation of borrowing_count
-        if books_to_update:
-            books_to_update._compute_borrowing_count()
         return borrowings
 
     def write(self, vals):
@@ -192,13 +228,14 @@ class LibraryBorrowing(models.Model):
         return result
 
     def unlink(self):
-        """Override unlink to update borrowing count after deletion"""
-        books_to_update = self.mapped('book_id')
-        result = super().unlink()
-        # Trigger recomputation of borrowing_count
-        if books_to_update:
-            books_to_update._compute_borrowing_count()
-        return result
+        """Delete borrowing record(s).
+
+        ORM Basics (Recordsets).
+        We no longer need to manually recompute borrowing_count: because it
+        @api.depends on the One2many, the ORM invalidates and recomputes it
+        automatically once the related links disappear on deletion.
+        """
+        return super().unlink()
 
     def action_return_book(self):
         """Mark book as returned"""

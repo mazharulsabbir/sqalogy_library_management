@@ -9,6 +9,7 @@
                 <field name="name"/>
                 <field name="author"/>
                 <field name="isbn"/>
+                <field name="category_ids" widget="many2many_tags" optional="show"/>
                 <field name="publication_date"/>
                 <field name="state" widget="badge" decoration-success="state=='available'" decoration-info="state=='borrowed'"/>
                 <field name="borrowing_count"/>
@@ -27,6 +28,8 @@
                             invisible="state == 'available'" class="oe_highlight"/>
                     <button name="action_view_borrowings" string="View Borrowing History" type="object"
                             invisible="borrowing_count == 0" class="oe_highlight"/>
+                    <button name="action_clear_categories" string="Clear Categories" type="object"
+                            invisible="not category_ids"/>
                     <field name="state" widget="statusbar" statusbar_visible="available,borrowed"/>
                 </header>
                 <sheet>
@@ -48,7 +51,23 @@
                             <field name="current_borrowing_id" invisible="state != 'borrowed'" readonly="1"/>
                         </group>
                     </group>
+                    <!-- Many2many tags: edits emit special ORM commands (4/3/0). -->
+                    <field name="category_ids" widget="many2many_tags"
+                           options="{'color_field': 'color'}"/>
                     <notebook>
+                        <page string="Borrowing History">
+                            <!-- One2many list of this book's borrowings -->
+                            <field name="borrowing_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="borrower_name"/>
+                                    <field name="member_id"/>
+                                    <field name="borrow_date"/>
+                                    <field name="return_date"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Notes">
                             <field name="notes" placeholder="Additional information about this book..."/>
                         </page>
@@ -69,6 +88,7 @@
                        filter_domain="['|', '|', ('name', 'ilike', self), ('author', 'ilike', self), ('isbn', 'ilike', self)]"/>
                 <field name="author"/>
                 <field name="isbn"/>
+                <field name="category_ids"/>
                 <separator/>
                 <filter string="Available" name="available" domain="[('state', '=', 'available')]"/>
                 <filter string="Borrowed" name="borrowed" domain="[('state', '=', 'borrowed')]"/>
@@ -77,6 +97,7 @@
                 <group>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Author" name="group_author" context="{'group_by': 'author'}"/>
+                    <filter string="Category" name="group_category" context="{'group_by': 'category_ids'}"/>
                     <filter string="Publication Date" name="group_publication_date" context="{'group_by': 'publication_date'}"/>
                 </group>
             </search>

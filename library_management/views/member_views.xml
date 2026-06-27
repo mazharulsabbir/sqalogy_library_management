@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- WEEK 7: views for library.member (DELEGATION inheritance of res.partner)
+         Note how name/email/phone below are res.partner fields, transparently
+         usable here thanks to _inherits = {'res.partner': 'partner_id'}. -->
+
+    <!-- Sequence for the auto-generated member code -->
+    <record id="seq_library_member" model="ir.sequence">
+        <field name="name">Library Member Sequence</field>
+        <field name="code">library.member</field>
+        <field name="prefix">MEM</field>
+        <field name="padding">5</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <!-- List View -->
+    <record id="view_library_member_list" model="ir.ui.view">
+        <field name="name">library.member.list</field>
+        <field name="model">library.member</field>
+        <field name="arch" type="xml">
+            <list string="Members">
+                <field name="member_code"/>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="membership_date"/>
+                <field name="borrowing_count"/>
+                <field name="active_borrowing_count"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_library_member_form" model="ir.ui.view">
+        <field name="name">library.member.form</field>
+        <field name="model">library.member</field>
+        <field name="arch" type="xml">
+            <form string="Member">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_borrowings" type="object"
+                                class="oe_stat_button" icon="fa-book">
+                            <field name="borrowing_count" widget="statinfo" string="Borrowings"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <!-- res.partner fields, available via delegation -->
+                            <field name="name"/>
+                            <field name="email"/>
+                            <field name="phone"/>
+                        </group>
+                        <group>
+                            <field name="member_code"/>
+                            <field name="membership_date"/>
+                            <field name="active_borrowing_count"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Borrowings">
+                            <!-- One2many: the member's borrowing history -->
+                            <field name="borrowing_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="book_id"/>
+                                    <field name="borrow_date"/>
+                                    <field name="expected_return_date"/>
+                                    <field name="return_date"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <Chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_library_member_search" model="ir.ui.view">
+        <field name="name">library.member.search</field>
+        <field name="model">library.member</field>
+        <field name="arch" type="xml">
+            <search string="Members">
+                <field name="name"/>
+                <field name="member_code"/>
+                <field name="email"/>
+                <filter string="Has Active Borrowing" name="has_active"
+                        domain="[('active_borrowing_count', '>', 0)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_library_member" model="ir.actions.act_window">
+        <field name="name">Members</field>
+        <field name="res_model">library.member</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register your first library member!
+            </p>
+            <p>
+                Members are contacts (res.partner) with a library membership.
+            </p>
+        </field>
+    </record>
+</odoo>

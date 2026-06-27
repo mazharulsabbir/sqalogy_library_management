@@ -21,6 +21,8 @@ This module provides comprehensive library management features:
         'security/library_security.xml',
         'security/ir.model.access.csv',
 
+        'views/category_views.xml',
+        'views/member_views.xml',
         'views/book_views.xml',
         'views/borrowing_views.xml',
 

@@ -1,10 +1,25 @@
-from odoo import api, fields, models, _
+# -*- coding: utf-8 -*-
+# =============================================================================
+# WEEK 7 TOPICS demonstrated in this file:
+#   * Odoo Models           -> models.Model subclass => library_book table
+#   * Odoo Inheritance      -> (3) CLASSICAL/MIXIN inheritance via _inherit list
+#   * ORM Basics/Recordsets -> compute methods iterate recordsets
+#   * Environment (env)      -> self.env[...] to reach other models
+#   * Domains               -> search() domains below
+#   * One2many/Many2many    -> category_ids (M2M) and borrowing_ids (O2M)
+#                              plus the special Command.* ORM commands
+# =============================================================================
+from odoo import api, fields, models, Command, _
 from odoo.exceptions import ValidationError
 
 
 class LibraryBook(models.Model):
     _name = 'library.book'
     _description = 'Library Book'
+    # Odoo Inheritance -> MIXIN (classical) inheritance.
+    # Listing abstract models in `_inherit` (with a _name set) mixes their
+    # fields/behaviour into this model. mail.thread adds the chatter +
+    # message_post; mail.activity.mixin adds scheduled activities.
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'name'
 
@@ -47,6 +62,22 @@ class LibraryBook(models.Model):
         default=True,
         help='Set to false to archive the book'
     )
+    # One2many/Many2many fields.
+    # One2many = the "many" side of a Many2one. It needs the inverse Many2one
+    # field name on the other model (library.borrowing.book_id). No extra
+    # column is stored on this table; Odoo derives it from book_id.
+    borrowing_ids = fields.One2many(
+        comodel_name='library.borrowing',
+        inverse_name='book_id',
+        string='Borrowings',
+        help='All borrowing records for this book'
+    )
+    # Many2many = a relation table linking many books to many categories.
+    category_ids = fields.Many2many(
+        comodel_name='library.category',
+        string='Categories',
+        help='Tags/categories classifying this book'
+    )
     borrowing_count = fields.Integer(
         string='Times Borrowed',
         compute='_compute_borrowing_count',
@@ -68,16 +99,29 @@ class LibraryBook(models.Model):
         ('isbn_unique', 'UNIQUE(isbn)', 'ISBN must be unique!'),
     ]
 
+    @api.depends('borrowing_ids')
     def _compute_borrowing_count(self):
-        """Compute total number of times the book has been borrowed"""
+        """Compute total number of times the book has been borrowed.
+
+        ORM Basics (Recordsets).
+        Because we declared the borrowing_ids One2many, we no longer need a
+        manual search_count(): `book.borrowing_ids` is already the recordset of
+        related borrowings, so len() gives the count. The @api.depends tells the
+        ORM to recompute automatically whenever the related borrowings change.
+        """
         for book in self:
-            book.borrowing_count = self.env['library.borrowing'].search_count([
-                ('book_id', '=', book.id)
-            ])
+            book.borrowing_count = len(book.borrowing_ids)
 
     @api.depends('state')
     def _compute_current_borrowing(self):
-        """Get the current borrowing record if book is borrowed"""
+        """Get the current borrowing record if book is borrowed.
+
+        WEEK 7 TOPICS: Environment (env) + Domains.
+        `self.env['library.borrowing']` reaches another model through the
+        environment; `.search([...])` runs a query filtered by a DOMAIN
+        (a list of (field, operator, value) leaves). `limit=1` returns a
+        single-record recordset (or an empty one).
+        """
         for book in self:
             if book.state == 'borrowed':
                 book.current_borrowing_id = self.env['library.borrowing'].search([
@@ -117,7 +161,12 @@ class LibraryBook(models.Model):
         return True
 
     def action_view_borrowings(self):
-        """Open list of all borrowing records for this book"""
+        """Open list of all borrowing records for this book.
+
+        Domains.
+        The returned action carries a DOMAIN that scopes the opened list to
+        this book only, and a context that pre-fills book_id on new records.
+        """
         self.ensure_one()
         return {
             'name': _('Borrowing History'),
@@ -127,3 +176,24 @@ class LibraryBook(models.Model):
             'domain': [('book_id', '=', self.id)],
             'context': {'default_book_id': self.id},
         }
+
+    def action_clear_categories(self):
+        """Remove every category tag from the selected book(s).
+
+        Special ORM Commands (One2many/Many2many).
+        Writing to a One2many/Many2many field uses special command tuples,
+        conveniently produced by the `Command` helper. Full cheat-sheet:
+
+            Command.create(values)   -> (0, 0, values)  add a NEW related record
+            Command.update(id, vals) -> (1, id, values) update an existing one
+            Command.delete(id)       -> (2, id, 0)      unlink AND delete record
+            Command.unlink(id)       -> (3, id, 0)      detach link, keep record
+            Command.link(id)         -> (4, id, 0)      attach an existing record
+            Command.clear()          -> (5, 0, 0)       detach ALL links
+            Command.set([ids])       -> (6, 0, [ids])   replace links with this set
+
+        Here we use Command.clear() to drop all category links (the categories
+        themselves are NOT deleted, only the links from these books).
+        """
+        self.write({'category_ids': [Command.clear()]})
+        return True
