@@ -1,0 +1,11 @@
+id,name,description,color
+library_category_fiction,Fiction,Novels and fictional stories,1
+library_category_classic,Classic Literature,Timeless literary works,2
+library_category_bengali,Bengali Literature,Works by Bengali authors,3
+library_category_memoir,Memoir & Biography,Personal accounts and life stories,4
+library_category_history,History,Historical accounts and liberation war,5
+library_category_romance,Romance,Love stories and romantic novels,6
+library_category_drama,Drama,Dramatic works and plays,7
+library_category_children,Children & Young Adult,Books for younger readers,8
+library_category_poetry,Poetry,Poetic works and verse,9
+library_category_social,Social Commentary,Works exploring social issues,10

@@ -9,9 +9,16 @@
 #   * One2many/Many2many    -> book_id / member_id Many2one are the inverse
 #                              sides of book.borrowing_ids / member.borrowing_ids
 # =============================================================================
+# WEEK 8 TOPICS demonstrated in this file:
+#   * @api.model_create_multi -> Batch creation with sequence generation
+#   * @api.depends            -> Computed fields (is_overdue, days_borrowed)
+#   * @api.constrains         -> Data validation (dates, availability, limits)
+#   * @api.onchange           -> UI auto-fill (_onchange_member_id, _onchange_book_id)
+#   * @api.ondelete           -> Deletion protection (_unlink_check_state)
+# =============================================================================
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
-from datetime import date
+from odoo.exceptions import ValidationError, UserError
+from datetime import date, timedelta
 
 
 class LibraryBorrowing(models.Model):
@@ -118,10 +125,15 @@ class LibraryBorrowing(models.Model):
         help='Additional notes about the borrowing'
     )
 
+    # =========================================================================
+    # WEEK 8: @api.onchange - UI field change handlers
+    # =========================================================================
+
     @api.onchange('member_id')
     def _onchange_member_id(self):
         """Auto-fill borrower contact details from the selected member.
 
+        WEEK 8: @api.onchange
         Environment + delegation inheritance in action.
         Because library.member delegates to res.partner, member_id.name/email/
         phone read straight through to the partner record.
@@ -130,6 +142,46 @@ class LibraryBorrowing(models.Model):
             self.borrower_name = self.member_id.name
             self.borrower_email = self.member_id.email
             self.borrower_phone = self.member_id.phone
+
+    @api.onchange('book_id')
+    def _onchange_book_id(self):
+        """Warn user if selected book is unavailable and set default return date.
+
+        WEEK 8: @api.onchange
+        This demonstrates multiple behaviors in one onchange:
+        1. Show a warning if the book is already borrowed
+        2. Auto-set the expected return date to 14 days from borrow date
+        """
+        if self.book_id:
+            # Set default expected return date (14 days from borrow date)
+            if not self.expected_return_date and self.borrow_date:
+                self.expected_return_date = self.borrow_date + timedelta(days=14)
+
+            # Warn if book is already borrowed
+            if self.book_id.state == 'borrowed':
+                return {
+                    'warning': {
+                        'title': _("Book Not Available"),
+                        'message': _(
+                            "The book '%s' is currently borrowed by another member. "
+                            "Please choose a different book or wait for its return."
+                        ) % self.book_id.name,
+                    }
+                }
+
+    @api.onchange('borrow_date')
+    def _onchange_borrow_date(self):
+        """Update expected return date when borrow date changes.
+
+        WEEK 8: @api.onchange
+        Keeps the expected return date 14 days after the borrow date.
+        """
+        if self.borrow_date:
+            self.expected_return_date = self.borrow_date + timedelta(days=14)
+
+    # =========================================================================
+    # WEEK 8: @api.depends - Computed field dependencies
+    # =========================================================================
 
     @api.depends('expected_return_date', 'return_date', 'state')
     def _compute_is_overdue(self):
@@ -150,6 +202,10 @@ class LibraryBorrowing(models.Model):
                 borrowing.days_borrowed = (end_date - borrowing.borrow_date).days
             else:
                 borrowing.days_borrowed = 0
+
+    # =========================================================================
+    # WEEK 8: @api.constrains - Data validation
+    # =========================================================================
 
     @api.constrains('book_id', 'state')
     def _check_book_availability(self):
@@ -187,11 +243,15 @@ class LibraryBorrowing(models.Model):
                         _('Expected return date cannot be earlier than borrow date.')
                     )
 
+    # =========================================================================
+    # WEEK 8: @api.model_create_multi - Batch creation handler
+    # =========================================================================
+
     @api.model_create_multi
     def create(self, vals_list):
         """Generate the reference sequence and update book status on create.
 
-        ORM Basics + Environment.
+        WEEK 8: @api.model_create_multi
         This is the single, correct create override. @api.model_create_multi
         receives a LIST of value dicts (batch create), so we loop to assign the
         sequence per record via self.env['ir.sequence']. The book's
@@ -265,3 +325,62 @@ class LibraryBorrowing(models.Model):
             },
             'target': 'current',
         }
+
+    # =========================================================================
+    # WEEK 8: @api.ondelete - Deletion protection
+    # =========================================================================
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_check_state(self):
+        """Prevent deletion of active borrowings.
+
+        WEEK 8: @api.ondelete
+        Active borrowing records (state='borrowed') cannot be deleted directly.
+        The user must first return the book using the 'Return Book' action.
+        This protects data integrity and ensures proper book state management.
+        """
+        for record in self:
+            if record.state == 'borrowed':
+                raise UserError(
+                    _('Cannot delete borrowing record "%s" while the book is still borrowed. '
+                      'Please return the book first using the "Return Book" action.') % record.name
+                )
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_update_book_state(self):
+        """Ensure book state is updated when borrowing is deleted.
+
+        WEEK 8: @api.ondelete
+        This is a cleanup hook that runs before deletion. Since we block
+        active borrowings above, this only runs for 'returned' records.
+        Note: We could perform additional cleanup here if needed.
+        """
+        # This method demonstrates that multiple @api.ondelete can be defined
+        # The first one blocks active borrowings, this one could do cleanup
+        pass
+
+    # =========================================================================
+    # WEEK 8: @api.constrains - Additional member limit validation
+    # =========================================================================
+
+    @api.constrains('member_id', 'state')
+    def _check_member_borrowing_limit(self):
+        """Ensure member hasn't exceeded the borrowing limit (max 5 books).
+
+        WEEK 8: @api.constrains
+        Business rule: A member can only borrow up to 5 books at a time.
+        This prevents library abuse and ensures fair access to resources.
+        """
+        MAX_BORROWINGS = 5
+        for record in self:
+            if record.member_id and record.state == 'borrowed':
+                active_borrowings = self.search_count([
+                    ('member_id', '=', record.member_id.id),
+                    ('state', '=', 'borrowed'),
+                ])
+                if active_borrowings > MAX_BORROWINGS:
+                    raise ValidationError(
+                        _('Member "%s" has reached the maximum borrowing limit '
+                          'of %d books. Please return a book before borrowing more.')
+                        % (record.member_id.name, MAX_BORROWINGS)
+                    )
