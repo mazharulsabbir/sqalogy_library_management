@@ -422,3 +422,249 @@ class LibraryBook(models.Model):
                       'To preserve history, archive the book instead using the '
                       '"Archive" action.') % (book.name, len(book.borrowing_ids))
                 )
+
+    # =========================================================================
+    # WEEK 8 CLASS 3: ORM Methods
+    # =========================================================================
+    # These methods demonstrate core ORM operations that can be tested in shell
+    # =========================================================================
+
+    @api.model
+    def default_get(self, fields_list):
+        """Override default_get to set smart defaults.
+
+        WEEK 8 CLASS 3: default_get()
+        Called when creating a new record to get default values.
+        We can add computed defaults based on context or other logic.
+
+        Shell example:
+            Book.default_get(['name', 'state', 'active'])
+        """
+        defaults = super().default_get(fields_list)
+        # Add custom default logic
+        if 'notes' in fields_list and not defaults.get('notes'):
+            defaults['notes'] = _('Added via library management system')
+        return defaults
+
+    def name_get(self):
+        """Override name_get to show custom display name.
+
+        WEEK 8 CLASS 3: name_get()
+        Returns list of (id, name) tuples for display in dropdowns, etc.
+        We show "Title - Author" format for better identification.
+
+        Shell example:
+            books = Book.search([], limit=5)
+            books.name_get()
+        """
+        result = []
+        for book in self:
+            name = book.name
+            if book.author:
+                name = f"{book.name} - {book.author}"
+            result.append((book.id, name))
+        return result
+
+    @api.model
+    def get_statistics_by_state(self):
+        """Get book statistics grouped by state using read_group.
+
+        WEEK 8 CLASS 3: read_group()
+        Performs SQL GROUP BY aggregation efficiently.
+
+        Shell example:
+            Book.get_statistics_by_state()
+        """
+        return self.read_group(
+            domain=[('active', '=', True)],
+            fields=['state'],
+            groupby=['state']
+        )
+
+    @api.model
+    def get_books_by_author_stats(self, limit=10):
+        """Get book count per author using read_group.
+
+        WEEK 8 CLASS 3: read_group()
+
+        Shell example:
+            Book.get_books_by_author_stats(limit=5)
+        """
+        return self.read_group(
+            domain=[],
+            fields=['author'],
+            groupby=['author'],
+            orderby='author_count desc',
+            limit=limit
+        )
+
+    def get_all_category_names(self):
+        """Get all category names for these books using mapped.
+
+        WEEK 8 CLASS 3: mapped()
+        Extracts values from recordsets, flattening One2many/Many2many.
+
+        Shell example:
+            books = Book.search([], limit=5)
+            books.get_all_category_names()
+        """
+        # mapped() on Many2many returns a recordset, then we map 'name'
+        return list(set(self.mapped('category_ids.name')))
+
+    def get_borrower_names(self):
+        """Get all borrower names for these books using mapped.
+
+        WEEK 8 CLASS 3: mapped()
+        Traverses relations: book -> borrowing_ids -> borrower_name
+
+        Shell example:
+            book = Book.search([], limit=1)
+            book.get_borrower_names()
+        """
+        return self.mapped('borrowing_ids.borrower_name')
+
+    def get_available_books(self):
+        """Filter to get only available books from this recordset.
+
+        WEEK 8 CLASS 3: filtered()
+        In-memory filtering without additional SQL query.
+
+        Shell example:
+            all_books = Book.search([])
+            available = all_books.get_available_books()
+        """
+        return self.filtered(lambda b: b.state == 'available')
+
+    def get_popular_books_from_set(self, min_borrowings=1):
+        """Filter books that have been borrowed at least N times.
+
+        WEEK 8 CLASS 3: filtered()
+
+        Shell example:
+            books = Book.search([])
+            popular = books.get_popular_books_from_set(min_borrowings=2)
+        """
+        return self.filtered(lambda b: b.borrowing_count >= min_borrowings)
+
+    def filter_by_state_domain(self, state):
+        """Filter books by state using filtered_domain.
+
+        WEEK 8 CLASS 3: filtered_domain()
+        In-memory filtering using domain expression.
+
+        Shell example:
+            books = Book.search([])
+            available = books.filter_by_state_domain('available')
+        """
+        return self.filtered_domain([('state', '=', state)])
+
+    def get_book_data(self, fields=None):
+        """Read specific fields as dictionaries.
+
+        WEEK 8 CLASS 3: read()
+        Returns list of dicts, useful for JSON/API responses.
+
+        Shell example:
+            books = Book.search([], limit=3)
+            books.get_book_data(['name', 'author', 'state'])
+        """
+        if fields is None:
+            fields = ['name', 'author', 'isbn', 'state']
+        return self.read(fields)
+
+    def get_single_book_details(self):
+        """Get details for a single book using ensure_one.
+
+        WEEK 8 CLASS 3: ensure_one()
+        Validates recordset contains exactly one record.
+
+        Shell example:
+            book = Book.search([], limit=1)
+            book.get_single_book_details()
+        """
+        self.ensure_one()
+        return {
+            'id': self.id,
+            'name': self.name,
+            'author': self.author,
+            'isbn': self.isbn,
+            'state': self.state,
+            'categories': self.category_ids.mapped('name'),
+            'borrowing_count': self.borrowing_count,
+            'is_available': self.state == 'available',
+        }
+
+    @api.model
+    def bulk_create_books(self, books_data):
+        """Create multiple books at once demonstrating batch create.
+
+        WEEK 8 CLASS 3: create() batch
+        More efficient than creating one by one.
+
+        Shell example:
+            Book.bulk_create_books([
+                {'name': 'Book 1', 'author': 'Author 1'},
+                {'name': 'Book 2', 'author': 'Author 2'},
+            ])
+        """
+        # Ensure required fields have defaults
+        for data in books_data:
+            if 'state' not in data:
+                data['state'] = 'available'
+        return self.create(books_data)
+
+    def bulk_update_notes(self, note_text):
+        """Update notes for all books in recordset.
+
+        WEEK 8 CLASS 3: write()
+        Updates all records in the recordset at once.
+
+        Shell example:
+            books = Book.search([('state', '=', 'available')], limit=3)
+            books.bulk_update_notes('Batch updated note')
+        """
+        return self.write({'notes': note_text})
+
+    @api.model
+    def search_with_pagination(self, domain=None, page=1, page_size=10):
+        """Search with pagination demonstrating offset and limit.
+
+        WEEK 8 CLASS 3: search()
+        Shows offset/limit for pagination.
+
+        Shell example:
+            # Page 1
+            Book.search_with_pagination([], page=1, page_size=5)
+            # Page 2
+            Book.search_with_pagination([], page=2, page_size=5)
+        """
+        if domain is None:
+            domain = []
+        offset = (page - 1) * page_size
+        records = self.search(domain, offset=offset, limit=page_size, order='name')
+        total = self.search_count(domain)
+        return {
+            'records': records,
+            'page': page,
+            'page_size': page_size,
+            'total_records': total,
+            'total_pages': (total + page_size - 1) // page_size,
+        }
+
+    @api.model
+    def browse_and_check(self, book_ids):
+        """Browse records by IDs and check if they exist.
+
+        WEEK 8 CLASS 3: browse() and exists()
+
+        Shell example:
+            Book.browse_and_check([1, 2, 999])
+        """
+        records = self.browse(book_ids)
+        existing = records.exists()
+        return {
+            'requested_ids': book_ids,
+            'found_records': existing,
+            'found_count': len(existing),
+            'missing_ids': list(set(book_ids) - set(existing.ids)),
+        }
