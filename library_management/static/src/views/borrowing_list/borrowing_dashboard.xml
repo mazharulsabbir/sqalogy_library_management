@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Plain Bootstrap grid + cards: the backend ships Bootstrap 5 too -->
+    <t t-name="library_management.BorrowingDashboard">
+        <div class="o_library_dashboard container-fluid border-bottom bg-view py-2">
+            <div class="row g-2">
+                <t t-foreach="cards" t-as="card" t-key="card.filter">
+                    <div class="col-6 col-md-3">
+                        <button type="button"
+                                class="btn w-100 text-start border d-flex align-items-center gap-3 p-2"
+                                t-on-click="() => this.applyFilter(card.filter)">
+                            <i t-attf-class="fa fa-2x {{ card.icon }} text-{{ card.color }}"/>
+                            <span class="d-flex flex-column">
+                                <span class="fs-4 fw-bold lh-1" t-esc="card.value === undefined ? '…' : card.value"/>
+                                <small class="text-muted" t-esc="card.label"/>
+                            </span>
+                        </button>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+
+</templates>

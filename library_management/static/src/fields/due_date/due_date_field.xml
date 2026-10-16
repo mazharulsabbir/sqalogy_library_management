@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="library_management.DueDateField">
+        <div class="o_library_due_date d-flex flex-column gap-1 w-100">
+            <!-- Read-only (list rows, returned borrowings): text + badge -->
+            <t t-if="props.readonly">
+                <div class="d-flex align-items-center gap-2">
+                    <span t-esc="formattedValue"/>
+                    <span t-if="status" class="badge rounded-pill" t-att-class="status.className" t-esc="status.label"/>
+                </div>
+            </t>
+            <t t-else="">
+                <!-- Odoo's own input + calendar popover, fed with our rules -->
+                <DateTimeInput
+                    id="props.id"
+                    type="'date'"
+                    value="value"
+                    minDate="startDate"
+                    isDateValid="isDateValid"
+                    dayCellClass="dayCellClass"
+                    placeholder="props.placeholder"
+                    onApply.bind="onApply"
+                />
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                    <t t-foreach="quickPicks" t-as="pick" t-key="pick.days">
+                        <button type="button"
+                                class="btn btn-sm o_library_quick_pick"
+                                t-att-class="pick.isActive ? 'btn-primary' : 'btn-outline-secondary'"
+                                t-att-title="pick.title"
+                                t-on-click="() => this.onApply(pick.date)">
+                            +<t t-esc="pick.days"/>d
+                        </button>
+                    </t>
+                    <span t-if="status" class="badge rounded-pill ms-1" t-att-class="status.className" t-esc="status.label"/>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

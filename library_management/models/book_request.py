@@ -24,6 +24,13 @@ class LibraryBookRequest(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'request_date desc, id desc'
 
+    # WEEK 14: loan rules shared by the website datepicker (data-* attributes
+    # in the template) and the controller. Weekdays use ISO numbers
+    # (1 = Monday ... 7 = Sunday), the same as luxon's `date.weekday` in JS.
+    _default_loan_days = 14
+    _max_loan_days = 30
+    _closed_weekdays = (5,)  # Friday
+
     name = fields.Char(
         string='Reference',
         required=True,
@@ -63,7 +70,7 @@ class LibraryBookRequest(models.Model):
     )
     expected_return_date = fields.Date(
         string='Return By',
-        default=lambda self: fields.Date.context_today(self) + timedelta(days=14),
+        default=lambda self: self._default_expected_return_date(),
         help='Expected return date used for the borrowing created on approval',
     )
     state = fields.Selection(
@@ -110,6 +117,32 @@ class LibraryBookRequest(models.Model):
                     _('%(partner)s already has an open request for "%(book)s".',
                       partner=request.partner_id.name, book=request.book_id.name)
                 )
+
+    @api.model
+    def _default_expected_return_date(self):
+        """Today + default loan, moved off closed days (same as the JS widget)."""
+        return_date = fields.Date.context_today(self) + timedelta(days=self._default_loan_days)
+        while return_date.isoweekday() in self._closed_weekdays:
+            return_date += timedelta(days=1)
+        return return_date
+
+    @api.model
+    def _parse_website_return_date(self, value):
+        """Return the date posted by the website form, or None if not allowed.
+
+        The datepicker already blocks bad dates, but the browser is not
+        trusted: anyone can POST any string, so we check again here.
+        """
+        try:
+            return_date = fields.Date.to_date(value)
+        except ValueError:
+            return None
+        today = fields.Date.context_today(self)
+        if (not return_date
+                or not today < return_date <= today + timedelta(days=self._max_loan_days)
+                or return_date.isoweekday() in self._closed_weekdays):
+            return None
+        return return_date
 
     @api.model_create_multi
     def create(self, vals_list):

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!--
+        t-inherit-mode="primary"   -> a NEW template, built from web.ListRenderer
+        t-inherit-mode="extension" -> would change web.ListRenderer for EVERY list
+    -->
+    <t t-name="library_management.BorrowingListRenderer" t-inherit="web.ListRenderer" t-inherit-mode="primary">
+        <xpath expr="//div[hasclass('o_list_renderer')]" position="before">
+            <BorrowingDashboard list="props.list"/>
+        </xpath>
+    </t>
+
+</templates>

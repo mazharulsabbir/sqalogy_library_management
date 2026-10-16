@@ -80,10 +80,9 @@ class LibraryCategory(models.Model):
         for category in self:
             category.book_count = len(category.book_ids)
 
-    # SQL constraints (database-level)
-    _sql_constraints = [
-        ('name_unique', 'UNIQUE(name)', 'Category name must be unique!'),
-    ]
+    # SQL constraints (database-level). Odoo 19: one models.Constraint per
+    # attribute; the old _sql_constraints list is silently ignored.
+    _name_unique = models.Constraint('UNIQUE(name)', 'Category name must be unique!')
 ```
 
 ### Field Types Overview

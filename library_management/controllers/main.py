@@ -137,7 +137,7 @@ class LibraryWebsite(http.Controller):
         '/library/book/<model("library.book"):book>/request',
         type='http', auth='user', website=True, methods=['POST'],
     )
-    def book_request(self, book, message='', **kwargs):
+    def book_request(self, book, message='', expected_return_date='', **kwargs):
         """Create a library.book.request for the logged-in visitor.
 
         auth='user'      -> anonymous visitors are redirected to the login page
@@ -160,11 +160,17 @@ class LibraryWebsite(http.Controller):
             ('state', '=', 'requested'),
         ])
         if not already_open:
-            BookRequest.create({
+            vals = {
                 'book_id': book.id,
                 'partner_id': partner.id,
                 'message': message,
-            })
+            }
+            # Week 14: ISO date from the datepicker's hidden input. Invalid or
+            # missing -> keep the field default (today + 14 days).
+            return_date = BookRequest._parse_website_return_date(expected_return_date)
+            if return_date:
+                vals['expected_return_date'] = return_date
+            BookRequest.create(vals)
         return request.redirect('%s?requested=1' % book.website_url)
 
     # -------------------------------------------------------------------------

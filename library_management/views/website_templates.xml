@@ -25,7 +25,7 @@ QWeb cheat-sheet used below:
     <!-- Reusable sub-template: one book card (called from the catalog)       -->
     <!-- =================================================================== -->
     <template id="website_library_book_card" name="Library: Book Card">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100 shadow-sm o_library_book_card">
             <a t-att-href="book.website_url">
                 <img t-if="book.cover_image" class="card-img-top object-fit-cover" style="height: 220px;"
                      t-attf-src="/web/image/library.book/{{ book.id }}/cover_image" t-att-alt="book.name"/>
@@ -196,11 +196,33 @@ QWeb cheat-sheet used below:
                                 </p>
                             </div>
                             <t t-elif="not request.env.user._is_public()">
-                                <form t-attf-action="/library/book/{{ book.id }}/request" method="post" class="card card-body bg-light">
+                                <!-- Week 14: .o_library_request_form is the selector of the
+                                     BookRequestForm interaction; data-* attributes pass the
+                                     loan rules from Python to JS. -->
+                                <t t-set="BookRequest" t-value="request.env['library.book.request']"/>
+                                <form t-attf-action="/library/book/{{ book.id }}/request" method="post"
+                                      class="card card-body bg-light o_library_request_form"
+                                      t-att-data-default-days="BookRequest._default_loan_days"
+                                      t-att-data-max-days="BookRequest._max_loan_days"
+                                      t-att-data-closed-weekdays="','.join(str(day) for day in BookRequest._closed_weekdays)">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     <label for="library_request_message" class="form-label fw-bold">Request this book</label>
                                     <textarea id="library_request_message" name="message" rows="2" class="form-control mb-2"
                                               placeholder="Optional message for the librarian"/>
+
+                                    <!-- Bootstrap input-group + validation feedback.
+                                         The visible input shows the user's date format; the
+                                         hidden one carries YYYY-MM-DD to the controller. -->
+                                    <label for="library_return_date" class="form-label fw-bold">Return by</label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text"><i class="fa fa-calendar" role="img" aria-label="Calendar"/></span>
+                                        <input id="library_return_date" type="text" autocomplete="off"
+                                               class="form-control o_library_return_input" placeholder="Pick a date"/>
+                                        <div class="invalid-feedback o_library_return_error"/>
+                                    </div>
+                                    <input type="hidden" name="expected_return_date" class="o_library_return_iso"/>
+                                    <div class="form-text mb-2 o_library_return_hint"/>
+
                                     <button type="submit" class="btn btn-primary align-self-start">
                                         <i class="fa fa-paper-plane"/> Send request
                                     </button>
@@ -211,6 +233,28 @@ QWeb cheat-sheet used below:
                                     Sign in to request this book
                                 </a>
                             </t>
+
+                            <!-- Week 14: Bootstrap components work with data-bs-* attributes,
+                                 no custom JS needed (Bootstrap's JS ships with the website). -->
+                            <p class="mt-3 mb-1">
+                                <a class="link-secondary small" data-bs-toggle="collapse" href="#library_borrowing_rules"
+                                   role="button" aria-expanded="false" aria-controls="library_borrowing_rules">
+                                    <i class="fa fa-info-circle"/> Borrowing rules
+                                </a>
+                            </p>
+                            <div class="collapse" id="library_borrowing_rules">
+                                <ul class="list-group list-group-flush small">
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Default loan <span class="badge text-bg-secondary">14 days</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Maximum loan <span class="badge text-bg-secondary">30 days</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Closed <span class="badge text-bg-danger">Friday</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

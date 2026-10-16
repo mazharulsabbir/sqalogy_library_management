@@ -919,11 +919,13 @@ class LibraryBorrowing(models.Model):
 ### SQL Constraints (Complementary)
 
 ```python
-_sql_constraints = [
-    ('isbn_unique', 'UNIQUE(isbn)', 'ISBN must be unique!'),
-    ('positive_price', 'CHECK(price >= 0)', 'Price cannot be negative!'),
-]
+# Odoo 19: models.Constraint (the pre-19 `_sql_constraints = [...]` list is ignored)
+_isbn_unique = models.Constraint('UNIQUE(isbn)', 'ISBN must be unique!')
+_positive_price = models.Constraint('CHECK(price >= 0)', 'Price cannot be negative!')
 ```
+
+The database constraint name is `<table>_<attribute without leading underscore>`,
+e.g. `library_book_isbn_unique`.
 
 ---
 

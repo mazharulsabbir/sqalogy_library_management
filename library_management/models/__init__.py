@@ -7,3 +7,5 @@ from . import borrowing
 from . import book_website
 from . import borrowing_portal
 from . import book_request
+# Week 14: Frontend & Widgets
+from . import borrowing_dashboard

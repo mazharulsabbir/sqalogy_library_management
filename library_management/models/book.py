@@ -112,9 +112,9 @@ class LibraryBook(models.Model):
         help='Human-readable availability status'
     )
 
-    _sql_constraints = [
-        ('isbn_unique', 'UNIQUE(isbn)', 'ISBN must be unique!'),
-    ]
+    # Odoo 19: SQL constraints are models.Constraint attributes (the old
+    # _sql_constraints list is ignored). DB name: library_book_isbn_unique.
+    _isbn_unique = models.Constraint('UNIQUE(isbn)', 'ISBN must be unique!')
 
     @api.depends('borrowing_ids')
     def _compute_borrowing_count(self):

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- OWL template: t-att-class merges with the static class attribute -->
+    <t t-name="library_management.DaysBadgeField">
+        <span class="badge rounded-pill" t-att-class="badgeClass" t-esc="label"/>
+    </t>
+
+</templates>

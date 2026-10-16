@@ -60,6 +60,16 @@ A comprehensive Odoo 19 module for managing library book inventory and borrowing
 - Security: public/portal read ACLs, "published only" book rule, "own borrowings" portal rule.
 - Lecture notes and exercises: `docs/WEEK_11_WEBSITE.md`.
 
+### 4b. Frontend & Widgets (Week 14)
+- Borrowings list uses `js_class="library_borrowing_list"`: an OWL dashboard (On loan / Due in 7 days /
+  Late / Returned this month) above the table; clicking a card applies the matching search filter.
+- Custom field widgets: `library_days_badge` (coloured days pill) and `library_due_date`, a datepicker
+  that blocks dates before the borrow date and closed weekdays (Friday), with +7/+14/+21 day quick picks
+  and a live "Due in / Overdue by" badge.
+- Website: the book request form gets a "Return by" datepicker (Interaction + `datetime_picker` service),
+  validated again in the controller; Bootstrap collapse, input-group validation and SCSS card hover.
+- Lecture notes, hands-on and exercises: `docs/WEEK_14_FRONTEND_WIDGETS.md`.
+
 ### 5. Availability Management
 - Automatic status updates when books are borrowed or returned
 - Real-time availability tracking

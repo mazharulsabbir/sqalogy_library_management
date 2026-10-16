@@ -1,0 +1,27 @@
+// =============================================================================
+// WEEK 14: Using Bootstrap in the Odoo website
+// =============================================================================
+// This file is part of web.assets_frontend, so Bootstrap's SCSS variables
+// ($primary, $spacer, $border-radius...) and mixins are available, and they
+// follow the colours chosen in the website theme editor.
+// Prefer Bootstrap utility classes in the templates first; write SCSS only
+// for what utilities cannot express (hover effects, transitions...).
+// =============================================================================
+
+.o_library_book_card {
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+    // Only "lift" cards on devices that can hover (tablet/desktop width)
+    @include media-breakpoint-up(md) {
+        &:hover {
+            transform: translateY(-4px);
+            box-shadow: $box-shadow-lg !important;
+        }
+    }
+}
+
+// Same class as the backend widget: closed days in the website calendar
+.o_date_item_cell.o_library_closed_day {
+    color: $danger;
+    text-decoration: line-through;
+}

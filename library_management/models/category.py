@@ -52,9 +52,8 @@ class LibraryCategory(models.Model):
         help='How many books currently use this category'
     )
 
-    _sql_constraints = [
-        ('name_unique', 'UNIQUE(name)', 'Category name must be unique!'),
-    ]
+    # Odoo 19: models.Constraint replaces _sql_constraints
+    _name_unique = models.Constraint('UNIQUE(name)', 'Category name must be unique!')
 
     def _compute_book_count(self):
         # ORM Basics (Recordsets).

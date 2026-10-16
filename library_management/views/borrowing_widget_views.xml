@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+WEEK 14: Frontend & Widgets -> using our JS from the XML views
+================================================================================
+  widget="library_days_badge"   -> static/src/fields/days_badge/
+  widget="library_due_date"     -> static/src/fields/due_date/   (hands-on)
+  js_class="library_borrowing_list" -> static/src/views/borrowing_list/
+
+Inherited views keep the Week 7/8 views untouched: comment out this file in
+the manifest and the module goes back to the standard widgets.
+================================================================================
+-->
+<odoo>
+
+    <!-- List: custom view (dashboard on top) + custom widgets in the columns -->
+    <record id="view_library_borrowing_tree_widgets" model="ir.ui.view">
+        <field name="name">library.borrowing.list.widgets</field>
+        <field name="model">library.borrowing</field>
+        <field name="inherit_id" ref="view_library_borrowing_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list" position="attributes">
+                <attribute name="js_class">library_borrowing_list</attribute>
+            </xpath>
+            <field name="expected_return_date" position="attributes">
+                <attribute name="widget">library_due_date</attribute>
+                <attribute name="options">{'start_field': 'borrow_date', 'done_field': 'return_date'}</attribute>
+            </field>
+            <field name="days_borrowed" position="attributes">
+                <attribute name="widget">library_days_badge</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- Form: the hands-on datepicker -->
+    <record id="view_library_borrowing_form_widgets" model="ir.ui.view">
+        <field name="name">library.borrowing.form.widgets</field>
+        <field name="model">library.borrowing</field>
+        <field name="inherit_id" ref="view_library_borrowing_form"/>
+        <field name="arch" type="xml">
+            <!-- The OVERDUE banner also shows expected_return_date: target the one in the group -->
+            <xpath expr="//group//field[@name='expected_return_date']" position="attributes">
+                <attribute name="widget">library_due_date</attribute>
+                <attribute name="options">{
+                    'start_field': 'borrow_date',
+                    'done_field': 'return_date',
+                    'closed_weekdays': [5],
+                    'quick_days': [7, 14, 21]
+                }</attribute>
+            </xpath>
+            <field name="days_borrowed" position="attributes">
+                <attribute name="widget">library_days_badge</attribute>
+                <attribute name="options">{'warn_after': 14, 'danger_after': 30}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- Search: filters toggled by the dashboard cards (by their `name`) -->
+    <record id="view_library_borrowing_search_widgets" model="ir.ui.view">
+        <field name="name">library.borrowing.search.widgets</field>
+        <field name="model">library.borrowing</field>
+        <field name="inherit_id" ref="view_library_borrowing_search"/>
+        <field name="arch" type="xml">
+            <filter name="overdue" position="after">
+                <filter string="Late" name="late"
+                        domain="[('state', '=', 'borrowed'), ('expected_return_date', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Due in 7 Days" name="due_this_week"
+                        domain="[('state', '=', 'borrowed'),
+                                 ('expected_return_date', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('expected_return_date', '&lt;=', (context_today() + relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Returned This Month" name="returned_this_month"
+                        domain="[('state', '=', 'returned'), ('return_date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Book requests: same widget, no start field, only the weekday rule -->
+    <record id="view_library_book_request_form_widgets" model="ir.ui.view">
+        <field name="name">library.book.request.form.widgets</field>
+        <field name="model">library.book.request</field>
+        <field name="inherit_id" ref="view_library_book_request_form"/>
+        <field name="arch" type="xml">
+            <field name="expected_return_date" position="attributes">
+                <attribute name="widget">library_due_date</attribute>
+                <attribute name="options">{'closed_weekdays': [5], 'quick_days': [7, 14, 30]}</attribute>
+            </field>
+        </field>
+    </record>
+
+</odoo>

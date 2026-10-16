@@ -1,0 +1,19 @@
+// The calendar popover is rendered in the overlay container, outside the
+// field, so these selectors are global (not nested under .o_library_due_date).
+.o_date_item_cell {
+    &.o_library_closed_day {
+        color: $danger;
+        text-decoration: line-through;
+    }
+
+    &.o_library_start_day {
+        box-shadow: inset 0 0 0 1px $primary;
+        border-radius: 50%;
+    }
+}
+
+.o_library_due_date .o_library_quick_pick {
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 0.75rem;
+}
