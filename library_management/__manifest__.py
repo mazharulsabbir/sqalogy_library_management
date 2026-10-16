@@ -61,6 +61,7 @@ Week 11: Odoo Website Development
         'views/book_website_views.xml',
         'views/website_templates.xml',
         'views/portal_templates.xml',
+        'views/book_request_views.xml',
         'data/website_data.xml',
     ],
     'demo': [

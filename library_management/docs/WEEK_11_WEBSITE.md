@@ -217,9 +217,27 @@ Every dict key becomes a variable in the QWeb template.
             type='http', auth='user', website=True, methods=['POST'])
 def book_request(self, book, message='', **kwargs):
     ...
-    book.sudo().message_post(body=body, author_id=partner.id, ...)
+    BookRequest = request.env['library.book.request'].sudo()
+    if not BookRequest.search_count([('book_id', '=', book.id),
+                                     ('partner_id', '=', partner.id),
+                                     ('state', '=', 'requested')]):
+        BookRequest.create({'book_id': book.id, 'partner_id': partner.id, 'message': message})
     return request.redirect('%s?requested=1' % book.website_url)
 ```
+
+The form creates a real record, `library.book.request` (`models/book_request.py`). `partner_id` is forced to the
+current user, never read from the form, so nobody can file a request in someone else's name.
+
+**The approval flow (backend):** Library → Operations → **Book Requests** (librarians only).
+
+| State | How it gets there | Effect |
+|---|---|---|
+| Requested | Website form | Shows "Waiting for librarian approval" on the book page |
+| Approved | **Approve** button | Creates the `library.borrowing` (and the `library.member` if the person isn't one yet); book becomes Borrowed |
+| Rejected | **Reject** button (optional reason) | Requester sees the reason on `/my/requests` |
+| Cancelled | Requester clicks **Cancel** on `/my/requests` | Nothing else happens |
+
+Approval is refused while the book is borrowed. One open request per person and book is enforced by a constraint.
 
 The form **must** contain:
 
@@ -496,7 +514,8 @@ Smoke tests:
 | `/my` | reader | "Library Borrowings" card with counter |
 | `/my/borrowings` | reader | Only reader's borrowings |
 | `/my/borrowings/<someone else's id>` | reader | Redirect to `/my` |
-| Book page → "Send request" | reader | Message appears in the book's chatter (backend) |
+| Book page → "Send request" | reader | Request appears in Library → Operations → Book Requests and on `/my/requests` |
+| Book Requests → **Approve** | librarian | Borrowing created, book marked Borrowed, request Approved |
 
 ---
 

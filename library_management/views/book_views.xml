@@ -73,7 +73,7 @@
                         </page>
                     </notebook>
                 </sheet>
-                <Chatter/>
+                <chatter/>
             </form>
         </field>
     </record>

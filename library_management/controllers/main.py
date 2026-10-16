@@ -112,9 +112,19 @@ class LibraryWebsite(http.Controller):
             raise NotFound()
         if not book.is_published and not book.can_publish:
             raise NotFound()
+        # The visitor's own open request for this book, if any (shown as
+        # "Request pending" instead of the form). Public users have none.
+        pending_request = request.env['library.book.request']
+        if not request.env.user._is_public():
+            pending_request = pending_request.sudo().search([
+                ('book_id', '=', book.id),
+                ('partner_id', '=', request.env.user.partner_id.id),
+                ('state', '=', 'requested'),
+            ], limit=1)
         return request.render('library_management.website_library_book', {
             'book': book,
             'requested': requested,
+            'pending_request': pending_request,
             # main_object lets the website editor's "Publish" toggle and
             # SEO tools work on this record.
             'main_object': book,
@@ -128,26 +138,33 @@ class LibraryWebsite(http.Controller):
         type='http', auth='user', website=True, methods=['POST'],
     )
     def book_request(self, book, message='', **kwargs):
-        """Post a reservation request in the book's chatter.
+        """Create a library.book.request for the logged-in visitor.
 
         auth='user'      -> anonymous visitors are redirected to the login page
         methods=['POST'] -> a GET on this URL returns 405
         csrf (default)   -> the form MUST contain `csrf_token`
+
+        The request is then approved in the backend
+        (Library > Operations > Book Requests), which creates the borrowing.
         """
         if not book.exists() or not book.has_access('read') or not book.is_published:
             raise NotFound()
         partner = request.env.user.partner_id
-        body = _("Reservation request from %(name)s: %(msg)s",
-                 name=partner.name, msg=message or _("(no message)"))
-        # Portal users cannot write on books, so sudo() is needed to post.
-        # Safe: we checked above that they may read this published book, and
-        # message_post escapes the plain-text body.
-        book.sudo().message_post(
-            body=body,
-            author_id=partner.id,
-            message_type='comment',
-            subtype_xmlid='mail.mt_note',
-        )
+        # Portal users only have READ access on requests, so sudo() is needed
+        # to create one. Safe: we checked the book above, and partner_id is
+        # forced to the current user (never taken from the form).
+        BookRequest = request.env['library.book.request'].sudo()
+        already_open = BookRequest.search_count([
+            ('book_id', '=', book.id),
+            ('partner_id', '=', partner.id),
+            ('state', '=', 'requested'),
+        ])
+        if not already_open:
+            BookRequest.create({
+                'book_id': book.id,
+                'partner_id': partner.id,
+                'message': message,
+            })
         return request.redirect('%s?requested=1' % book.website_url)
 
     # -------------------------------------------------------------------------

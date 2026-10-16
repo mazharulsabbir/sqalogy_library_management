@@ -42,6 +42,12 @@ class LibraryCustomerPortal(CustomerPortal):
                 Borrowing.search_count(self._get_borrowings_domain())
                 if Borrowing.has_access('read') else 0
             )
+        if 'book_request_count' in counters:
+            BookRequest = request.env['library.book.request']
+            values['book_request_count'] = (
+                BookRequest.search_count(self._get_borrowings_domain())
+                if BookRequest.has_access('read') else 0
+            )
         return values
 
     def _get_borrowing_searchbar_sortings(self):
@@ -135,3 +141,63 @@ class LibraryCustomerPortal(CustomerPortal):
             'my_borrowings_history', False,
         )
         return request.render('library_management.portal_my_borrowing', values)
+
+    # -------------------------------------------------------------------------
+    # /my/requests : book requests made from the website
+    # -------------------------------------------------------------------------
+    @http.route(
+        ['/my/requests', '/my/requests/page/<int:page>'],
+        type='http', auth='user', website=True,
+    )
+    def portal_my_book_requests(self, page=1, filterby=None, **kwargs):
+        values = self._prepare_portal_layout_values()
+        BookRequest = request.env['library.book.request']
+
+        searchbar_filters = {
+            'all': {'label': _('All'), 'domain': []},
+            'requested': {'label': _('Pending'), 'domain': [('state', '=', 'requested')]},
+            'approved': {'label': _('Approved'), 'domain': [('state', '=', 'approved')]},
+            'rejected': {'label': _('Rejected'), 'domain': [('state', '=', 'rejected')]},
+        }
+        filterby = filterby if filterby in searchbar_filters else 'all'
+        # Same ownership condition as borrowings: partner_id = current user.
+        domain = self._get_borrowings_domain() + searchbar_filters[filterby]['domain']
+
+        pager = portal_pager(
+            url='/my/requests',
+            url_args={'filterby': filterby},
+            total=BookRequest.search_count(domain),
+            page=page,
+            step=self._items_per_page,
+        )
+        book_requests = BookRequest.search(
+            domain, limit=self._items_per_page, offset=pager['offset'])
+
+        values.update({
+            'book_requests': book_requests.sudo(),
+            'page_name': 'book_request',
+            'pager': pager,
+            'default_url': '/my/requests',
+            'searchbar_filters': searchbar_filters,
+            'filterby': filterby,
+        })
+        return request.render('library_management.portal_my_book_requests', values)
+
+    @http.route(
+        '/my/requests/<int:request_id>/cancel',
+        type='http', auth='user', website=True, methods=['POST'],
+    )
+    def portal_cancel_book_request(self, request_id, **kwargs):
+        """Let requesters withdraw a pending request.
+
+        The record rule only lets users READ their own requests, so we
+        check ownership through _document_check_access() (raises if the
+        user can't read it) before cancelling with the returned sudo record.
+        """
+        try:
+            request_sudo = self._document_check_access('library.book.request', request_id)
+        except (AccessError, MissingError):
+            return request.redirect('/my/requests')
+        if request_sudo.state == 'requested':
+            request_sudo.action_cancel()
+        return request.redirect('/my/requests')

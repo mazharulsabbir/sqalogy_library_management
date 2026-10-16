@@ -21,6 +21,7 @@ Four pieces, the same recipe used by sale / account / project:
                 <t t-else="">Borrowings</t>
             </li>
             <li t-if="borrowing" class="breadcrumb-item active" t-out="borrowing.name"/>
+            <li t-if="page_name == 'book_request'" class="breadcrumb-item active">Book Requests</li>
         </xpath>
     </template>
 
@@ -39,6 +40,13 @@ Four pieces, the same recipe used by sale / account / project:
                 <t t-set="url" t-value="'/my/borrowings'"/>
                 <t t-set="text">Books you borrowed and when to return them</t>
                 <t t-set="placeholder_count" t-value="'borrowing_count'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/library_management/static/description/icon.png'"/>
+                <t t-set="title">Book Requests</t>
+                <t t-set="url" t-value="'/my/requests'"/>
+                <t t-set="text">Books you requested from the website and their approval status</t>
+                <t t-set="placeholder_count" t-value="'book_request_count'"/>
             </t>
         </div>
     </template>
@@ -135,6 +143,65 @@ Four pieces, the same recipe used by sale / account / project:
                     </div>
                 </div>
             </div>
+        </t>
+    </template>
+
+    <!-- 5. Book requests list /my/requests (with a Cancel button per pending row) -->
+    <template id="portal_my_book_requests" name="My Book Requests">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Book Requests</t>
+            </t>
+
+            <div t-if="not book_requests" class="alert alert-warning">
+                You have no book requests. Browse the <a href="/library">catalog</a> to request a book.
+            </div>
+            <t t-if="book_requests" t-call="portal.portal_table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Book</th>
+                        <th class="d-none d-md-table-cell">Requested On</th>
+                        <th>Status</th>
+                        <th class="text-end"/>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="book_requests" t-as="book_request">
+                        <td t-out="book_request.name"/>
+                        <td>
+                            <a t-if="book_request.book_id.is_published" t-att-href="book_request.book_id.website_url"
+                               t-out="book_request.book_id.name"/>
+                            <t t-else="" t-out="book_request.book_id.name"/>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <span t-field="book_request.request_date" t-options="{'widget': 'date'}"/>
+                        </td>
+                        <td>
+                            <span t-if="book_request.state == 'requested'" class="badge rounded-pill text-bg-info">Pending</span>
+                            <t t-elif="book_request.state == 'approved'">
+                                <span class="badge rounded-pill text-bg-success">Approved</span>
+                                <a t-if="book_request.borrowing_id" class="ms-1 small"
+                                   t-att-href="book_request.borrowing_id.get_portal_url()"
+                                   t-out="book_request.borrowing_id.name"/>
+                            </t>
+                            <t t-elif="book_request.state == 'rejected'">
+                                <span class="badge rounded-pill text-bg-danger">Rejected</span>
+                                <small t-if="book_request.reject_reason" class="text-muted ms-1" t-out="book_request.reject_reason"/>
+                            </t>
+                            <span t-else="" class="badge rounded-pill text-bg-secondary">Cancelled</span>
+                        </td>
+                        <td class="text-end">
+                            <form t-if="book_request.state == 'requested'" method="post"
+                                  t-attf-action="/my/requests/{{ book_request.id }}/cancel">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </t>
         </t>
     </template>
 

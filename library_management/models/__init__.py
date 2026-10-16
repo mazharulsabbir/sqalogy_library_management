@@ -6,3 +6,4 @@ from . import borrowing
 # Week 11: Website & Portal
 from . import book_website
 from . import borrowing_portal
+from . import book_request

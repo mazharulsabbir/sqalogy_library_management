@@ -141,6 +141,7 @@ QWeb cheat-sheet used below:
 
                     <div t-if="requested" class="alert alert-success">
                         <i class="fa fa-check"/> Your request has been sent to the librarian.
+                        Follow it in <a href="/my/requests">My Book Requests</a>.
                     </div>
                     <div t-if="not book.is_published" class="alert alert-warning">
                         This book is <strong>not published</strong>: only editors can see this page.
@@ -187,7 +188,14 @@ QWeb cheat-sheet used below:
                             <div t-field="book.website_description" class="mb-4"/>
 
                             <!-- Logged-in users: POST form (needs csrf_token!) -->
-                            <t t-if="not request.env.user._is_public()">
+                            <div t-if="pending_request" class="card card-body bg-light">
+                                <p class="mb-0">
+                                    <i class="fa fa-clock-o"/> You requested this book on
+                                    <span t-field="pending_request.request_date" t-options="{'widget': 'date'}"/>
+                                    (<t t-out="pending_request.name"/>). Waiting for librarian approval.
+                                </p>
+                            </div>
+                            <t t-elif="not request.env.user._is_public()">
                                 <form t-attf-action="/library/book/{{ book.id }}/request" method="post" class="card card-body bg-light">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     <label for="library_request_message" class="form-label fw-bold">Request this book</label>

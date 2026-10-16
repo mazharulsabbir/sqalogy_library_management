@@ -10,7 +10,6 @@
         <field name="code">library.member</field>
         <field name="prefix">MEM</field>
         <field name="padding">5</field>
-        <field name="number_next">1</field>
         <field name="number_increment">1</field>
     </record>
 
@@ -73,7 +72,7 @@
                         </page>
                     </notebook>
                 </sheet>
-                <Chatter/>
+                <chatter/>
             </form>
         </field>
     </record>
