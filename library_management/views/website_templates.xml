@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+WEEK 11: Odoo Website Development -> (3) Templates / QWeb for Website
+================================================================================
+A website page = a QWeb <template> rendered by request.render() in a controller.
+
+QWeb cheat-sheet used below:
+  t-call="website.layout"   wrap the page in the site header/footer/menu
+  t-out="expr"              print a value (HTML-escaped automatically)
+  t-field="record.field"    print a field using its widget (dates, images,
+                            html...) AND make it editable in the web editor
+  t-if / t-elif / t-else    conditions
+  t-foreach / t-as          loops (+ loop vars: book_index, book_first...)
+  t-set / t-value           define a variable
+  t-att-x="expr"            dynamic attribute     t-att-href="book.website_url"
+  t-attf-x="..{{expr}}.."   attribute with interpolation (format string)
+  t-call="template"         include another template (website.pager)
+  <div id="wrap" class="oe_structure"> drag-and-drop zone for snippets
+================================================================================
+-->
+<odoo>
+
+    <!-- =================================================================== -->
+    <!-- Reusable sub-template: one book card (called from the catalog)       -->
+    <!-- =================================================================== -->
+    <template id="website_library_book_card" name="Library: Book Card">
+        <div class="card h-100 shadow-sm o_library_book_card">
+            <a t-att-href="book.website_url">
+                <img t-if="book.cover_image" class="card-img-top object-fit-cover" style="height: 220px;"
+                     t-attf-src="/web/image/library.book/{{ book.id }}/cover_image" t-att-alt="book.name"/>
+                <div t-else="" class="card-img-top bg-200 d-flex align-items-center justify-content-center"
+                     style="height: 220px;">
+                    <i class="fa fa-book fa-4x text-muted" role="img" aria-label="Book"/>
+                </div>
+            </a>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title mb-1">
+                    <a t-att-href="book.website_url" class="text-reset" t-out="book.name"/>
+                </h5>
+                <p class="card-text text-muted small mb-2 o_library_card_author" t-out="book.author"/>
+                <div class="mb-2">
+                    <t t-foreach="book.category_ids" t-as="cat">
+                        <span t-attf-class="badge rounded-pill o_tag_color_{{ cat.color }} me-1" t-out="cat.name"/>
+                    </t>
+                </div>
+                <div class="mt-auto">
+                    <span t-if="book.state == 'available'" class="badge text-bg-success">Available</span>
+                    <span t-else="" class="badge text-bg-warning">Borrowed</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- =================================================================== -->
+    <!-- /library : catalog                                                    -->
+    <!-- =================================================================== -->
+    <template id="website_library_catalog" name="Library: Catalog">
+        <t t-call="website.layout">
+            <t t-set="additional_title">Library Catalog</t>
+            <div id="wrap" class="o_library_catalog">
+                <!-- Editable zone ABOVE the catalog: drop snippets here in edit mode -->
+                <div class="oe_structure" id="oe_structure_library_catalog_top"/>
+
+                <div class="container py-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <div>
+                            <h1 class="mb-0">Library Catalog</h1>
+                            <small class="text-muted"><t t-out="total"/> book(s) found</small>
+                        </div>
+                        <!-- GET form: inputs become query-string params (?search=...) -->
+                        <form action="/library" method="get" class="d-flex gap-2">
+                            <input t-if="current_category" type="hidden" name="category" t-att-value="current_category.id"/>
+                            <input type="search" name="search" class="form-control"
+                                   placeholder="Title, author or ISBN..." t-att-value="search"/>
+                            <button type="submit" class="btn btn-primary"><i class="fa fa-search"/></button>
+                        </form>
+                    </div>
+
+                    <!-- Category filter pills -->
+                    <ul class="nav nav-pills mb-4 gap-1">
+                        <li class="nav-item">
+                            <a t-attf-href="/library?search={{ search }}"
+                               t-attf-class="nav-link #{'active' if not current_category else ''}">All</a>
+                        </li>
+                        <li t-foreach="categories" t-as="cat" class="nav-item">
+                            <a t-attf-href="/library?category={{ cat.id }}&amp;search={{ search }}"
+                               t-attf-class="nav-link #{'active' if cat == current_category else ''}"
+                               t-out="cat.name"/>
+                        </li>
+                    </ul>
+
+                    <div t-if="not books" class="alert alert-info">
+                        No book matches your search.
+                    </div>
+                    <div class="row g-4">
+                        <div t-foreach="books" t-as="book" class="col-sm-6 col-lg-4 col-xl-3">
+                            <t t-call="library_management.website_library_book_card"/>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-center">
+                        <t t-call="website.pager"/>
+                    </div>
+                </div>
+
+                <div class="oe_structure" id="oe_structure_library_catalog_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- =================================================================== -->
+    <!-- Template INHERITANCE + "Customize" toggle                             -->
+    <!-- active="False" + customize_show="True" => the option appears in the   -->
+    <!-- website editor (Theme / Customize) and can be switched on/off.        -->
+    <!-- =================================================================== -->
+    <template id="website_library_book_card_isbn" name="Show ISBN on Book Cards"
+              inherit_id="library_management.website_library_book_card"
+              active="False" customize_show="True">
+        <xpath expr="//p[hasclass('o_library_card_author')]" position="after">
+            <p t-if="book.isbn" class="card-text small mb-2">
+                <i class="fa fa-barcode"/> <t t-out="book.isbn"/>
+            </p>
+        </xpath>
+    </template>
+
+    <!-- =================================================================== -->
+    <!-- /library/book/<slug> : detail page                                    -->
+    <!-- =================================================================== -->
+    <template id="website_library_book" name="Library: Book Page">
+        <t t-call="website.layout">
+            <t t-set="additional_title" t-value="book.name"/>
+            <div id="wrap">
+                <div class="container py-4">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/library">Catalog</a></li>
+                            <li class="breadcrumb-item active" t-out="book.name"/>
+                        </ol>
+                    </nav>
+
+                    <div t-if="requested" class="alert alert-success">
+                        <i class="fa fa-check"/> Your request has been sent to the librarian.
+                        Follow it in <a href="/my/requests">My Book Requests</a>.
+                    </div>
+                    <div t-if="not book.is_published" class="alert alert-warning">
+                        This book is <strong>not published</strong>: only editors can see this page.
+                    </div>
+
+                    <div class="row g-5">
+                        <div class="col-md-4">
+                            <!-- t-field on an Image field renders an <img>, editable in edit mode -->
+                            <div t-if="book.cover_image" t-field="book.cover_image"
+                                 t-options="{'widget': 'image', 'class': 'img-fluid rounded shadow'}"/>
+                            <div t-else="" class="bg-200 rounded d-flex align-items-center justify-content-center"
+                                 style="height: 320px;">
+                                <i class="fa fa-book fa-5x text-muted" role="img" aria-label="Book"/>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h1 t-field="book.name"/>
+                            <p class="lead text-muted">by <span t-field="book.author"/></p>
+
+                            <table class="table table-sm w-auto">
+                                <tr t-if="book.isbn">
+                                    <th class="pe-4">ISBN</th><td><span t-field="book.isbn"/></td>
+                                </tr>
+                                <tr t-if="book.publication_date">
+                                    <th class="pe-4">Published</th>
+                                    <!-- t-options formats the value through a widget.
+                                         NOTE: t-field is not allowed on <td>/<th>: wrap it in a <span>. -->
+                                    <td><span t-field="book.publication_date" t-options="{'widget': 'date', 'format': 'MMMM y'}"/></td>
+                                </tr>
+                                <tr>
+                                    <th class="pe-4">Status</th>
+                                    <td>
+                                        <span t-if="book.state == 'available'" class="badge text-bg-success">Available</span>
+                                        <span t-else="" class="badge text-bg-warning">Borrowed</span>
+                                    </td>
+                                </tr>
+                                <tr t-if="book.category_ids">
+                                    <th class="pe-4">Categories</th>
+                                    <td t-out="', '.join(book.category_ids.mapped('name'))"/>
+                                </tr>
+                            </table>
+
+                            <!-- Html field: editors can type rich text directly on the page -->
+                            <div t-field="book.website_description" class="mb-4"/>
+
+                            <!-- Logged-in users: POST form (needs csrf_token!) -->
+                            <div t-if="pending_request" class="card card-body bg-light">
+                                <p class="mb-0">
+                                    <i class="fa fa-clock-o"/> You requested this book on
+                                    <span t-field="pending_request.request_date" t-options="{'widget': 'date'}"/>
+                                    (<t t-out="pending_request.name"/>). Waiting for librarian approval.
+                                </p>
+                            </div>
+                            <t t-elif="not request.env.user._is_public()">
+                                <!-- Week 14: .o_library_request_form is the selector of the
+                                     BookRequestForm interaction; data-* attributes pass the
+                                     loan rules from Python to JS. -->
+                                <t t-set="BookRequest" t-value="request.env['library.book.request']"/>
+                                <form t-attf-action="/library/book/{{ book.id }}/request" method="post"
+                                      class="card card-body bg-light o_library_request_form"
+                                      t-att-data-default-days="BookRequest._default_loan_days"
+                                      t-att-data-max-days="BookRequest._max_loan_days"
+                                      t-att-data-closed-weekdays="','.join(str(day) for day in BookRequest._closed_weekdays)">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <label for="library_request_message" class="form-label fw-bold">Request this book</label>
+                                    <textarea id="library_request_message" name="message" rows="2" class="form-control mb-2"
+                                              placeholder="Optional message for the librarian"/>
+
+                                    <!-- Bootstrap input-group + validation feedback.
+                                         The visible input shows the user's date format; the
+                                         hidden one carries YYYY-MM-DD to the controller. -->
+                                    <label for="library_return_date" class="form-label fw-bold">Return by</label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text"><i class="fa fa-calendar" role="img" aria-label="Calendar"/></span>
+                                        <input id="library_return_date" type="text" autocomplete="off"
+                                               class="form-control o_library_return_input" placeholder="Pick a date"/>
+                                        <div class="invalid-feedback o_library_return_error"/>
+                                    </div>
+                                    <input type="hidden" name="expected_return_date" class="o_library_return_iso"/>
+                                    <div class="form-text mb-2 o_library_return_hint"/>
+
+                                    <button type="submit" class="btn btn-primary align-self-start">
+                                        <i class="fa fa-paper-plane"/> Send request
+                                    </button>
+                                </form>
+                            </t>
+                            <t t-else="">
+                                <a t-attf-href="/web/login?redirect={{ book.website_url }}" class="btn btn-outline-primary">
+                                    Sign in to request this book
+                                </a>
+                            </t>
+
+                            <!-- Week 14: Bootstrap components work with data-bs-* attributes,
+                                 no custom JS needed (Bootstrap's JS ships with the website). -->
+                            <p class="mt-3 mb-1">
+                                <a class="link-secondary small" data-bs-toggle="collapse" href="#library_borrowing_rules"
+                                   role="button" aria-expanded="false" aria-controls="library_borrowing_rules">
+                                    <i class="fa fa-info-circle"/> Borrowing rules
+                                </a>
+                            </p>
+                            <div class="collapse" id="library_borrowing_rules">
+                                <ul class="list-group list-group-flush small">
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Default loan <span class="badge text-bg-secondary">14 days</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Maximum loan <span class="badge text-bg-secondary">30 days</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                                        Closed <span class="badge text-bg-danger">Friday</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="oe_structure" id="oe_structure_library_book_bottom"/>
+            </div>
+        </t>
+    </template>
+
+</odoo>

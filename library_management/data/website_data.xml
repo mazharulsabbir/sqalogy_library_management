@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WEEK 11: a "Library" entry in the website's top menu -->
+<odoo>
+    <record id="menu_website_library" model="website.menu">
+        <field name="name">Library</field>
+        <field name="url">/library</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence" type="int">50</field>
+    </record>
+</odoo>

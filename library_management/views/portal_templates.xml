@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+WEEK 11: Odoo Website Development -> (4) Portal Views
+================================================================================
+Four pieces, the same recipe used by sale / account / project:
+  1. Breadcrumb entry      inherit portal.portal_breadcrumbs
+  2. Card on /my home      inherit portal.portal_my_home + portal.portal_docs_entry
+  3. List page             portal.portal_layout + portal_searchbar + portal_table
+  4. Detail page           portal.portal_layout + a Bootstrap card
+================================================================================
+-->
+<odoo>
+
+    <!-- 1. Breadcrumbs: "Home / Borrowings / BRW00001" -->
+    <template id="portal_breadcrumbs_borrowing" name="Portal layout: borrowing breadcrumbs"
+              inherit_id="portal.portal_breadcrumbs" priority="50">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'borrowing'" t-attf-class="breadcrumb-item #{'active' if not borrowing else ''}">
+                <a t-if="borrowing" href="/my/borrowings">Borrowings</a>
+                <t t-else="">Borrowings</t>
+            </li>
+            <li t-if="borrowing" class="breadcrumb-item active" t-out="borrowing.name"/>
+            <li t-if="page_name == 'book_request'" class="breadcrumb-item active">Book Requests</li>
+        </xpath>
+    </template>
+
+    <!-- 2. Card on /my. placeholder_count must match the key returned by
+            LibraryCustomerPortal._prepare_home_portal_values(). The card is
+            hidden automatically while the counter is 0. -->
+    <template id="portal_my_home_borrowing" name="Library Borrowings"
+              inherit_id="portal.portal_my_home" customize_show="True" priority="50">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+            <t t-set="portal_service_category_enable" t-value="True"/>
+        </xpath>
+        <div id="portal_service_category" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/library_management/static/description/icon.png'"/>
+                <t t-set="title">Library Borrowings</t>
+                <t t-set="url" t-value="'/my/borrowings'"/>
+                <t t-set="text">Books you borrowed and when to return them</t>
+                <t t-set="placeholder_count" t-value="'borrowing_count'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/library_management/static/description/icon.png'"/>
+                <t t-set="title">Book Requests</t>
+                <t t-set="url" t-value="'/my/requests'"/>
+                <t t-set="text">Books you requested from the website and their approval status</t>
+                <t t-set="placeholder_count" t-value="'book_request_count'"/>
+            </t>
+        </div>
+    </template>
+
+    <!-- 3. List page /my/borrowings -->
+    <template id="portal_my_borrowings" name="My Borrowings">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <!-- Renders breadcrumbs + Sort by / Filter by dropdowns from
+                 searchbar_sortings / searchbar_filters given by the controller -->
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Borrowings</t>
+            </t>
+
+            <div t-if="not borrowings" class="alert alert-warning">
+                You have no borrowing records yet.
+            </div>
+            <t t-if="borrowings" t-call="portal.portal_table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Book</th>
+                        <th class="d-none d-md-table-cell">Borrowed On</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="borrowings" t-as="borrowing">
+                        <td><a t-att-href="borrowing.get_portal_url()" t-out="borrowing.name"/></td>
+                        <td t-out="borrowing.book_id.name"/>
+                        <td class="d-none d-md-table-cell"><span t-field="borrowing.borrow_date"/></td>
+                        <td t-att-class="'text-danger fw-bold' if borrowing.is_overdue else ''">
+                            <span t-field="borrowing.expected_return_date"/>
+                        </td>
+                        <td class="text-end">
+                            <t t-call="library_management.portal_borrowing_state_badge"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+    <!-- Small reusable badge (t-call'ed from list and detail pages) -->
+    <template id="portal_borrowing_state_badge" name="Borrowing State Badge">
+        <span t-if="borrowing.state == 'returned'" class="badge rounded-pill text-bg-success">Returned</span>
+        <span t-elif="borrowing.is_overdue" class="badge rounded-pill text-bg-danger">Overdue</span>
+        <span t-else="" class="badge rounded-pill text-bg-info">Borrowed</span>
+    </template>
+
+    <!-- 4. Detail page /my/borrowings/<id> -->
+    <template id="portal_my_borrowing" name="My Borrowing">
+        <t t-call="portal.portal_layout">
+            <!-- Banner shown only to librarians: jump back to the backend form -->
+            <t t-set="o_portal_fullwidth_alert" groups="library_management.group_library_librarian">
+                <t t-call="portal.portal_back_in_edit_mode">
+                    <t t-set="backend_url" t-value="'/odoo/action-library_management.action_library_borrowing/%s' % borrowing.id"/>
+                </t>
+            </t>
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        Borrowing <span t-out="borrowing.name"/>
+                    </h5>
+                    <t t-call="library_management.portal_borrowing_state_badge"/>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Book</h6>
+                            <p class="mb-1 fw-bold" t-out="borrowing.book_id.name"/>
+                            <p class="mb-3" t-out="borrowing.book_author"/>
+                            <a t-if="borrowing.book_id.is_published" t-att-href="borrowing.book_id.website_url">
+                                <i class="fa fa-external-link"/> View in catalog
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-6">Borrowed on</dt>
+                                <dd class="col-6"><span t-field="borrowing.borrow_date"/></dd>
+                                <dt class="col-6">Due date</dt>
+                                <dd t-attf-class="col-6 #{'text-danger fw-bold' if borrowing.is_overdue else ''}">
+                                    <span t-field="borrowing.expected_return_date"/>
+                                </dd>
+                                <t t-if="borrowing.return_date">
+                                    <dt class="col-6">Returned on</dt>
+                                    <dd class="col-6"><span t-field="borrowing.return_date"/></dd>
+                                </t>
+                                <dt class="col-6">Days borrowed</dt>
+                                <dd class="col-6" t-out="borrowing.days_borrowed"/>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- 5. Book requests list /my/requests (with a Cancel button per pending row) -->
+    <template id="portal_my_book_requests" name="My Book Requests">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Book Requests</t>
+            </t>
+
+            <div t-if="not book_requests" class="alert alert-warning">
+                You have no book requests. Browse the <a href="/library">catalog</a> to request a book.
+            </div>
+            <t t-if="book_requests" t-call="portal.portal_table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Book</th>
+                        <th class="d-none d-md-table-cell">Requested On</th>
+                        <th>Status</th>
+                        <th class="text-end"/>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="book_requests" t-as="book_request">
+                        <td t-out="book_request.name"/>
+                        <td>
+                            <a t-if="book_request.book_id.is_published" t-att-href="book_request.book_id.website_url"
+                               t-out="book_request.book_id.name"/>
+                            <t t-else="" t-out="book_request.book_id.name"/>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <span t-field="book_request.request_date" t-options="{'widget': 'date'}"/>
+                        </td>
+                        <td>
+                            <span t-if="book_request.state == 'requested'" class="badge rounded-pill text-bg-info">Pending</span>
+                            <t t-elif="book_request.state == 'approved'">
+                                <span class="badge rounded-pill text-bg-success">Approved</span>
+                                <a t-if="book_request.borrowing_id" class="ms-1 small"
+                                   t-att-href="book_request.borrowing_id.get_portal_url()"
+                                   t-out="book_request.borrowing_id.name"/>
+                            </t>
+                            <t t-elif="book_request.state == 'rejected'">
+                                <span class="badge rounded-pill text-bg-danger">Rejected</span>
+                                <small t-if="book_request.reject_reason" class="text-muted ms-1" t-out="book_request.reject_reason"/>
+                            </t>
+                            <span t-else="" class="badge rounded-pill text-bg-secondary">Cancelled</span>
+                        </td>
+                        <td class="text-end">
+                            <form t-if="book_request.state == 'requested'" method="post"
+                                  t-attf-action="/my/requests/{{ book_request.id }}/cancel">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+</odoo>

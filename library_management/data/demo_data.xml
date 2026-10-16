@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Link books with categories (Many2many relations) -->
+
+        <!-- Classic Bengali Literature -->
+        <record id="library_book_pather_panchali" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic'),
+                ref('library_category_bengali')
+            ])]"/>
+        </record>
+
+        <record id="library_book_lalsalu" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic'),
+                ref('library_category_social')
+            ])]"/>
+        </record>
+
+        <record id="library_book_chokher_bali" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic'),
+                ref('library_category_romance')
+            ])]"/>
+        </record>
+
+        <record id="library_book_padma_nadir" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic'),
+                ref('library_category_social')
+            ])]"/>
+        </record>
+
+        <!-- Historical / Liberation War -->
+        <record id="library_book_dui_banglar" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_history')
+            ])]"/>
+        </record>
+
+        <record id="library_book_ekattorer" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_memoir'),
+                ref('library_category_history')
+            ])]"/>
+        </record>
+
+        <record id="library_book_birangona" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_memoir'),
+                ref('library_category_history')
+            ])]"/>
+        </record>
+
+        <record id="library_book_jochona" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_history')
+            ])]"/>
+        </record>
+
+        <record id="library_book_topto" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_history')
+            ])]"/>
+        </record>
+
+        <!-- Drama / Modern Fiction -->
+        <record id="library_book_griha_probesh" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <record id="library_book_shunno" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <record id="library_book_debi" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <record id="library_book_nondito" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic')
+            ])]"/>
+        </record>
+
+        <record id="library_book_ma" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <record id="library_book_kothao" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <record id="library_book_bohubrihi" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_drama')
+            ])]"/>
+        </record>
+
+        <!-- Other Categories -->
+        <record id="library_book_megher_opor" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_children')
+            ])]"/>
+        </record>
+
+        <record id="library_book_nishiddho" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_social')
+            ])]"/>
+        </record>
+
+        <record id="library_book_shesher" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_classic'),
+                ref('library_category_poetry')
+            ])]"/>
+        </record>
+
+        <record id="library_book_ghar_bhanga" model="library.book">
+            <field name="category_ids" eval="[(6, 0, [
+                ref('library_category_fiction'),
+                ref('library_category_social')
+            ])]"/>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WEEK 11: backend side of the website: publish toggle, cover, description -->
+<odoo>
+    <record id="view_library_book_form_website" model="ir.ui.view">
+        <field name="name">library.book.form.website</field>
+        <field name="model">library.book</field>
+        <field name="inherit_id" ref="library_management.view_library_book_form"/>
+        <field name="arch" type="xml">
+            <!-- "Published / Unpublished" smart button that also opens the page -->
+            <div name="button_box" position="inside">
+                <field name="is_published" widget="website_redirect_button"/>
+            </div>
+            <widget name="web_ribbon" position="after">
+                <field name="cover_image" widget="image" class="oe_avatar"/>
+            </widget>
+            <page name="notes" position="before">
+                <page string="Website" name="website">
+                    <group>
+                        <field name="website_url" widget="url" readonly="1"/>
+                    </group>
+                    <field name="website_description" placeholder="Description shown on the public book page..."/>
+                </page>
+            </page>
+        </field>
+    </record>
+
+    <!-- Quick filter in the backend search view -->
+    <record id="view_library_book_search_website" model="ir.ui.view">
+        <field name="name">library.book.search.website</field>
+        <field name="model">library.book</field>
+        <field name="inherit_id" ref="library_management.view_library_book_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="published" string="Published" domain="[('is_published', '=', True)]"/>
+                <filter name="unpublished" string="Not Published" domain="[('is_published', '=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

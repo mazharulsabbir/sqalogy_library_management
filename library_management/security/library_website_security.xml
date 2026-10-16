@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+WEEK 11: Odoo Website Development -> (4) Portal Security
+================================================================================
+Two layers, BOTH required:
+
+  1. ir.model.access.csv  (model level)  "can this group read library.book AT ALL?"
+     -> base.group_public (anonymous visitors) and base.group_portal get READ only.
+
+  2. ir.rule              (record level) "WHICH records can they read?"
+     -> visitors / portal: only PUBLISHED books
+     -> portal: only borrowings of THEIR OWN contact (partner)
+
+`user` in domain_force is the current res.users record, so
+user.partner_id.id is the logged-in customer's contact.
+================================================================================
+-->
+<odoo noupdate="1">
+
+    <record id="library_book_public_published_rule" model="ir.rule">
+        <field name="name">Library Book: public/portal see published books only</field>
+        <field name="model_id" ref="model_library_book"/>
+        <field name="domain_force">[('is_published', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('base.group_public')), (4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="library_borrowing_portal_rule" model="ir.rule">
+        <field name="name">Library Borrowing: portal users see their own borrowings</field>
+        <field name="model_id" ref="model_library_borrowing"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Book requests: members and portal users see only their own requests,
+         librarians/managers see all (rules of different groups are OR-ed). -->
+    <record id="library_book_request_own_rule" model="ir.rule">
+        <field name="name">Library Book Request: own requests</field>
+        <field name="model_id" ref="model_library_book_request"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('group_library_member'))]"/>
+    </record>
+
+    <record id="library_book_request_librarian_rule" model="ir.rule">
+        <field name="name">Library Book Request: librarians see all</field>
+        <field name="model_id" ref="model_library_book_request"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_library_librarian'))]"/>
+    </record>
+
+</odoo>

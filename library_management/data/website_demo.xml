@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WEEK 11 demo: publish every demo book so /library is not empty -->
+<odoo>
+    <function model="library.book" name="write">
+        <value model="library.book" search="[]"/>
+        <value eval="{'is_published': True}"/>
+    </function>
+</odoo>
