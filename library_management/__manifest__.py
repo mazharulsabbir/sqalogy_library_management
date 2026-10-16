@@ -1,6 +1,6 @@
 {
     'name': 'Library Management',
-    'version': '19.0.2.0.0',
+    'version': '19.0.3.0.0',
     'category': 'Productivity',
     'summary': 'Manage library book inventory and borrowing system',
     'description': """
@@ -31,14 +31,21 @@ Week 8: Odoo API Decorators
     - @api.onchange (UI field change handlers)
     - @api.constrains (data validation)
     - @api.ondelete (deletion protection)
+
+Week 11: Odoo Website Development
+    - Website basics: module structure, website.published.mixin, website.menu
+    - Controllers: @http.route (http / jsonrpc, auth, converters, POST + CSRF)
+    - Templates: QWeb for website (website.layout, t-field, pager, inheritance)
+    - Portal: /my pages, CustomerPortal, portal.mixin, access rights & rules
     """,
     'author': 'Your Company',
     'website': 'https://www.yourcompany.com',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail'],
+    'depends': ['base', 'mail', 'website', 'portal'],
     'data': [
         'security/library_security.xml',
         'security/ir.model.access.csv',
+        'security/library_website_security.xml',
 
         'views/category_views.xml',
         'views/member_views.xml',
@@ -49,12 +56,19 @@ Week 8: Odoo API Decorators
         'reports/borrowing_history_report.xml',
 
         'views/menu_views.xml',
+
+        # Week 11: Website & Portal
+        'views/book_website_views.xml',
+        'views/website_templates.xml',
+        'views/portal_templates.xml',
+        'data/website_data.xml',
     ],
     'demo': [
         'data/categories_import.csv',
         'data/members_import.csv',
         'data/books_import.csv',
         'data/demo_data.xml',
+        'data/website_demo.xml',
     ],
     'installable': True,
     'application': True,

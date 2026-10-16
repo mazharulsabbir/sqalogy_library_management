@@ -51,7 +51,16 @@ A comprehensive Odoo 19 module for managing library book inventory and borrowing
 - Borrowings can be linked to a member via the `member_id` Many2one, the inverse
   of the member's `borrowing_ids` One2many.
 
-### 4. Availability Management
+### 4. Website & Portal (Week 11)
+- Public catalog at `/library` (search, category filter, pager) and book pages
+  at `/library/book/<slug>`. Books are published with `website.published.mixin`.
+- Logged-in users can send a reservation request (CSRF-protected POST).
+- JSON endpoints: `/library/api/books` (GET) and `/library/api/availability` (jsonrpc).
+- Customer portal: `/my/borrowings` list + detail, with share-link tokens (`portal.mixin`).
+- Security: public/portal read ACLs, "published only" book rule, "own borrowings" portal rule.
+- Lecture notes and exercises: `docs/WEEK_11_WEBSITE.md`.
+
+### 5. Availability Management
 - Automatic status updates when books are borrowed or returned
 - Real-time availability tracking
 - Validation to ensure data integrity
@@ -190,7 +199,7 @@ library_management/
 
 - **Version:** 19.0.1.0.0
 - **License:** LGPL-3
-- **Dependencies:** base, mail
+- **Dependencies:** base, mail, website, portal
 - **Database Models:**
   - `library.book`
   - `library.borrowing`

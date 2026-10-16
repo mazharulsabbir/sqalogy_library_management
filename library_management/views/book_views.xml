@@ -68,7 +68,7 @@
                                 </list>
                             </field>
                         </page>
-                        <page string="Notes">
+                        <page string="Notes" name="notes">
                             <field name="notes" placeholder="Additional information about this book..."/>
                         </page>
                     </notebook>

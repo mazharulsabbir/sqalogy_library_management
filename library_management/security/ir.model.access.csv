@@ -11,3 +11,8 @@ access_library_category_manager,library.category.manager,model_library_category,
 access_library_member_member,library.member.member,model_library_member,group_library_member,1,0,0,0
 access_library_member_librarian,library.member.librarian,model_library_member,group_library_librarian,1,1,1,0
 access_library_member_manager,library.member.manager,model_library_member,group_library_manager,1,1,1,1
+access_library_book_public,library.book.public,model_library_book,base.group_public,1,0,0,0
+access_library_book_portal,library.book.portal,model_library_book,base.group_portal,1,0,0,0
+access_library_category_public,library.category.public,model_library_category,base.group_public,1,0,0,0
+access_library_category_portal,library.category.portal,model_library_category,base.group_portal,1,0,0,0
+access_library_borrowing_portal,library.borrowing.portal,model_library_borrowing,base.group_portal,1,0,0,0
